@@ -83,6 +83,8 @@ P1-401 валидирует declared public handle перед сохранени
 
 P1-402 импортирует публичную историю `user.rating` как независимые contest-rating facts. Каждый факт содержит `contestId`, название, место, старый и новый rating и время обновления; таблица имеет уникальность `(userId, contestId, ratedAt)`, поэтому повторная синхронизация обновляет наблюдение, не создавая дубликаты. Sync доступен только после declared public link и показывает пользователю success/error feedback, однако отдельная визуальная rating timeline остаётся задачей P1-406.
 
+P1-404 сопоставляет `user.status` с catalog problem только по устойчивой паре `(sourceId, externalKey)`: для Codeforces это `codeforces` и ключ вида `contestId-index`. Lookup ограничен тем же source до построения map. Если каталог ещё не знает такой ключ, `external_submissions.problemId` остаётся `NULL`; sync не подбирает похожую задачу по названию, URL или тегам и не выполняет destructive merge.
+
 ### Минимальный контракт адаптера
 
 P1-301 реализует базовый `ProblemSourceAdapter` в `server/sources/types.ts` и `CodeforcesAdapter` в `server/sources/codeforces.ts`. В текущем контракте доступны `fetchProblemSnapshot` и `fetchSubmissionsPage`; обе операции возвращают типизированный результат `success | retryable_failure | permanent_failure` с точным временем наблюдения. Router использует нормализованные данные адаптера, а не собственный парсер Codeforces. Операции контестов, публичного профиля и рейтинга остаются отдельными последующими расширениями интерфейса.

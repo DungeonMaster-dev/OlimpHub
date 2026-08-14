@@ -46,3 +46,4 @@
 - [x] Add P1-402 repeated-sync upsert regression proving one contest-rating fact remains one persisted record.
 - [x] Run and record final P1-402 tests, types, lint and format checks after the idempotency regression.
 - [x] Audit P1-403 Codeforces public submissions/verdict import against pagination, idempotency, owner scoping and visible history criteria.
+- [x] Audit P1-404 deterministic mapping from Codeforces external problem keys to canonical problem records without destructive merges.

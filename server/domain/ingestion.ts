@@ -45,6 +45,13 @@ export function isNewerThanCursor(
   );
 }
 
+export function canonicalProblemIdForExternalKey(
+  externalProblemKey: string,
+  problemByExternalKey: Map<string, number>
+) {
+  return problemByExternalKey.get(externalProblemKey) ?? null;
+}
+
 export async function collectNewSubmissionPages(input: {
   cursor: string | null | undefined;
   pageSize: number;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canonicalProblemIdForExternalKey,
   catalogueSnapshotFingerprint,
   collectNewSubmissionPages,
   isNewerThanCursor,
@@ -91,5 +92,14 @@ describe("incremental ingestion rules", () => {
     if (result.status === "success")
       expect(result.data.items).toHaveLength(2000);
     expect(calls).toEqual([1, 1001, 2001]);
+  });
+
+  it("maps only a known stable external key to its canonical problem record", () => {
+    const canonicalIds = new Map([
+      ["4-A", 7],
+      ["4-B", 8],
+    ]);
+    expect(canonicalProblemIdForExternalKey("4-A", canonicalIds)).toBe(7);
+    expect(canonicalProblemIdForExternalKey("999-A", canonicalIds)).toBeNull();
   });
 });

@@ -38,6 +38,7 @@ import {
 import { codeforcesAdapter } from "../sources/codeforces";
 import {
   catalogueSnapshotFingerprint,
+  canonicalProblemIdForExternalKey,
   collectNewSubmissionPages,
   nextSubmissionCursor,
 } from "../domain/ingestion";
@@ -1425,7 +1426,10 @@ export const olimpRouter = router({
           userId: ctx.user.id,
           sourceId: codeforcesAdapter.sourceId,
           externalSubmissionId: submission.externalSubmissionId,
-          problemId: problemByKey.get(submission.externalProblemKey) ?? null,
+          problemId: canonicalProblemIdForExternalKey(
+            submission.externalProblemKey,
+            problemByKey
+          ),
           externalProblemKey: submission.externalProblemKey,
           verdict: submission.verdict,
           language: submission.language,
