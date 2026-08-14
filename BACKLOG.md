@@ -80,7 +80,7 @@
 - [ ] P1-307 Implement CSES adapter/importer.
 - [ ] P1-308 Investigate and implement Kattis adapter if appropriate.
 - [ ] P1-309 Design olympiad archive import pipeline.
-- [ ] P1-310 Add source health/monitoring.
+- [x] P1-310 Add source health/monitoring. An admin-only tRPC projection aggregates durable source sync states into healthy, running, rate-limited, degraded, attention and unknown conditions without exposing raw provider errors; domain and authorization tests pass.
 - [ ] P1-311 Add ingestion integration tests.
 
 # Phase 4 — User & Codeforces Profile

@@ -44,4 +44,11 @@ describe("OlimpHub protected workspace", () => {
       })
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
+
+  it("rejects anonymous source-health monitoring before reading sync state", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+    await expect(caller.olimp.sourceHealth.list()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
 });

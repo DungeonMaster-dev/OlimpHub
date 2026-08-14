@@ -46,6 +46,7 @@ import {
   problemRelationTypes,
   reconcileCanonicalizationStatus,
 } from "../domain/canonicalization";
+import { summarizeSourceHealth } from "../domain/sourceHealth";
 
 const statusSchema = z.enum([
   "not_started",
@@ -371,6 +372,23 @@ async function reconcileProblemCanonicalizationStatuses(
 }
 
 export const olimpRouter = router({
+  sourceHealth: router({
+    list: adminProcedure.query(async () => {
+      const db = await requireDb();
+      const states = await db
+        .select({
+          sourceId: sourceSyncStates.sourceId,
+          scopeKey: sourceSyncStates.scopeKey,
+          status: sourceSyncStates.status,
+          lastStartedAt: sourceSyncStates.lastStartedAt,
+          lastFinishedAt: sourceSyncStates.lastFinishedAt,
+          updatedAt: sourceSyncStates.updatedAt,
+          lastError: sourceSyncStates.lastError,
+        })
+        .from(sourceSyncStates);
+      return summarizeSourceHealth(states);
+    }),
+  }),
   dashboard: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
     const settings = await ensureSettings(ctx.user.id);

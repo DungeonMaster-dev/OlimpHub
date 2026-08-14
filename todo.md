@@ -35,3 +35,4 @@
 - [x] Reconcile canonicalization status after rejected review so a stale candidate flag cannot remain when no pending or approved duplicate relation exists.
 - [x] Add P1-304 regression coverage for rejected duplicate proposals and status recomputation.
 - [x] Implement P1-305 provider-wide Codeforces request coordination, success-only caching, and deterministic cache/rate-limit regressions.
+- [x] Implement P1-310 source health monitoring from durable sync state with an admin-only read contract and regression coverage.
