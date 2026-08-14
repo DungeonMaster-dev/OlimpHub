@@ -30,7 +30,7 @@
 - [x] P0-004 Define canonical Problem data model independent of source. See `docs/architecture/DATABASE.md` (completed 2026-08-14).
 - [x] P0-005 Define user/activity/submission data model. See `docs/architecture/LEARNING_DATA.md` (completed 2026-08-14).
 - [x] P0-006 Define skill taxonomy and skill dependency graph. See `docs/architecture/SKILL_TAXONOMY.md` (completed 2026-08-14).
-- [ ] P0-007 Define AI Coach architecture and provider abstraction.
+- [x] P0-007 Define AI Coach architecture and provider abstraction. See `docs/architecture/AI_ARCHITECTURE.md` (completed 2026-08-14).
 - [ ] P0-008 Define secure code execution architecture.
 - [ ] P0-009 Define Telegram integration architecture.
 - [ ] P0-010 Produce architecture, product, security and data-source documentation.
