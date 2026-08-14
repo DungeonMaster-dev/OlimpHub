@@ -9,6 +9,7 @@ This directory contains the product and engineering documentation that should st
 - [data/OTHER_SOURCES.md](data/OTHER_SOURCES.md) — source-access assessment for AtCoder, CSES, Kattis and olympiad archives.
 - [architecture/DATABASE.md](architecture/DATABASE.md) — source-independent canonical problem model, provenance and catalogue invariants.
 - [architecture/LEARNING_DATA.md](architecture/LEARNING_DATA.md) — user, activity, attempt, submission and privacy data model.
+- [architecture/SKILL_TAXONOMY.md](architecture/SKILL_TAXONOMY.md) — versioned algorithm and mathematics skills DAG with explainable mappings.
 
 ## Planned documentation
 
