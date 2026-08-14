@@ -59,14 +59,17 @@ describe("Codeforces adapter", () => {
       adapter.fetchSubmissionsPage({ handle: "tourist", from: 1, count: 10 })
     ).resolves.toMatchObject({
       status: "success",
-      data: [
-        {
-          externalSubmissionId: "7",
-          externalProblemKey: "4-A",
-          verdict: "OK",
-          language: "GNU C++17",
-        },
-      ],
+      data: {
+        isExhausted: true,
+        items: [
+          {
+            externalSubmissionId: "7",
+            externalProblemKey: "4-A",
+            verdict: "OK",
+            language: "GNU C++17",
+          },
+        ],
+      },
     });
   });
 

@@ -72,8 +72,8 @@
 # Phase 3 — Problem Data Platform
 
 - [x] P1-301 Implement source adapter interface. `ProblemSourceAdapter` and the live `CodeforcesAdapter` provide normalized snapshot/submission operations with typed source outcomes; contract tests pass.
-- [ ] P1-302 Implement Codeforces adapter.
-- [ ] P1-303 Implement Codeforces incremental synchronization.
+- [x] P1-302 Implement Codeforces adapter. The live adapter normalizes official problem snapshots and public submission pages, classifies transient versus permanent failures, is used by sync routes, and has contract tests.
+- [x] P1-303 Implement Codeforces incremental synchronization. Catalogue fingerprints skip unchanged snapshots; submission sync walks multi-page overlap until the saved cursor or exhaustion, then advances a durable cursor only after successful persistence. Regression tests cover the >1000-new-submissions case.
 - [ ] P1-304 Implement deduplication and canonicalization.
 - [ ] P1-305 Implement caching and rate limiting.
 - [ ] P1-306 Implement AtCoder adapter.

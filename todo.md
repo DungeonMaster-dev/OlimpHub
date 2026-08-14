@@ -29,3 +29,5 @@
 - [x] Add tests and visual verification for P1-206 submission history, then document and commit it.
 - [x] Implement P1-301 source adapter interface with typed source outcomes, normalized Codeforces contracts, and adapter-boundary tests.
 - [x] Complete P1-301 failure classification and tests for permanent versus retryable Codeforces adapter outcomes.
+- [x] Complete P1-303 true incremental Codeforces submission pagination: walk overlapping pages until the saved cursor or exhaustion, then advance the cursor only after every newer page persists successfully.
+- [x] Add multi-page and >1000-new-submissions regression tests proving P1-303 does not skip records before cursor advancement.

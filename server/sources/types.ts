@@ -20,6 +20,11 @@ export type SourceSubmission = {
   submittedAt: Date;
 };
 
+export type SourceSubmissionPage = {
+  items: SourceSubmission[];
+  isExhausted: boolean;
+};
+
 export interface ProblemSourceAdapter {
   readonly sourceId: string;
   fetchProblemSnapshot(): Promise<SourceResult<SourceProblem[]>>;
@@ -27,5 +32,5 @@ export interface ProblemSourceAdapter {
     handle: string;
     from: number;
     count: number;
-  }): Promise<SourceResult<SourceSubmission[]>>;
+  }): Promise<SourceResult<SourceSubmissionPage>>;
 }

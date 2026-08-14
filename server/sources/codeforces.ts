@@ -3,7 +3,7 @@ import type {
   ProblemSourceAdapter,
   SourceProblem,
   SourceResult,
-  SourceSubmission,
+  SourceSubmissionPage,
 } from "./types";
 
 export type CodeforcesProblem = {
@@ -127,7 +127,7 @@ export class CodeforcesAdapter implements ProblemSourceAdapter {
     handle: string;
     from: number;
     count: number;
-  }): Promise<SourceResult<SourceSubmission[]>> {
+  }): Promise<SourceResult<SourceSubmissionPage>> {
     const observedAt = new Date();
     try {
       const submissions = await this.request<CodeforcesSubmission[]>(
@@ -138,28 +138,29 @@ export class CodeforcesAdapter implements ProblemSourceAdapter {
           count: String(input.count),
         }
       );
+      const items = submissions.flatMap(submission => {
+        const externalProblemKey = codeforcesKey(
+          submission.problem?.contestId,
+          submission.problem?.index
+        );
+        return submission.id &&
+          externalProblemKey &&
+          submission.creationTimeSeconds
+          ? [
+              {
+                externalSubmissionId: String(submission.id),
+                externalProblemKey,
+                verdict: submission.verdict ?? "UNKNOWN",
+                language: submission.programmingLanguage ?? null,
+                submittedAt: new Date(submission.creationTimeSeconds * 1000),
+              },
+            ]
+          : [];
+      });
       return {
         status: "success",
         observedAt,
-        data: submissions.flatMap(submission => {
-          const externalProblemKey = codeforcesKey(
-            submission.problem?.contestId,
-            submission.problem?.index
-          );
-          return submission.id &&
-            externalProblemKey &&
-            submission.creationTimeSeconds
-            ? [
-                {
-                  externalSubmissionId: String(submission.id),
-                  externalProblemKey,
-                  verdict: submission.verdict ?? "UNKNOWN",
-                  language: submission.programmingLanguage ?? null,
-                  submittedAt: new Date(submission.creationTimeSeconds * 1000),
-                },
-              ]
-            : [];
-        }),
+        data: { items, isExhausted: submissions.length < input.count },
       };
     } catch (error) {
       return classifyFailure(error, observedAt);

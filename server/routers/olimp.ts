@@ -35,6 +35,11 @@ import {
   shouldWriteAttemptTransition,
 } from "../domain/workflows";
 import { codeforcesAdapter } from "../sources/codeforces";
+import {
+  catalogueSnapshotFingerprint,
+  collectNewSubmissionPages,
+  nextSubmissionCursor,
+} from "../domain/ingestion";
 
 const statusSchema = z.enum([
   "not_started",
@@ -268,13 +273,14 @@ async function beginCodeforcesSync(scopeKey: string) {
         lastError: null,
       },
     });
-  return db;
+  return { db, cursor: existing?.cursor ?? null };
 }
 
 async function finishCodeforcesSync(
   db: Awaited<ReturnType<typeof requireDb>>,
   scopeKey: string,
-  error?: unknown
+  error?: unknown,
+  cursor?: string
 ) {
   const failed =
     error instanceof Error
@@ -288,6 +294,7 @@ async function finishCodeforcesSync(
       status: failed ? "failed" : "succeeded",
       lastFinishedAt: new Date(),
       lastError: failed,
+      ...(failed || cursor === undefined ? {} : { cursor }),
     })
     .where(
       and(
@@ -1109,7 +1116,8 @@ export const olimpRouter = router({
   codeforces: router({
     syncCatalogue: protectedProcedure.mutation(async ({ ctx }) => {
       const scopeKey = "catalogue";
-      const db = await beginCodeforcesSync(scopeKey);
+      const sync = await beginCodeforcesSync(scopeKey);
+      const { db } = sync;
       try {
         const snapshot = await codeforcesAdapter.fetchProblemSnapshot();
         if (snapshot.status !== "success")
@@ -1127,6 +1135,16 @@ export const olimpRouter = router({
           accessMode: "external_link" as const,
           sourceUpdatedAt: null,
         }));
+        const fingerprint = catalogueSnapshotFingerprint(snapshot.data);
+        if (sync.cursor === fingerprint) {
+          await writeActivity({
+            userId: ctx.user.id,
+            eventType: "codeforces_catalogue_unchanged",
+            metadata: { snapshotFingerprint: fingerprint },
+          });
+          await finishCodeforcesSync(db, scopeKey, undefined, fingerprint);
+          return { importedCount: 0, unchanged: true };
+        }
         for (let offset = 0; offset < records.length; offset += 400) {
           const batch = records.slice(offset, offset + 400);
           await db
@@ -1147,8 +1165,8 @@ export const olimpRouter = router({
           eventType: "codeforces_catalogue_synced",
           metadata: { importedCount: records.length },
         });
-        await finishCodeforcesSync(db, scopeKey);
-        return { importedCount: records.length };
+        await finishCodeforcesSync(db, scopeKey, undefined, fingerprint);
+        return { importedCount: records.length, unchanged: false };
       } catch (error) {
         await finishCodeforcesSync(db, scopeKey, error);
         throw error;
@@ -1156,7 +1174,8 @@ export const olimpRouter = router({
     }),
     syncSubmissions: protectedProcedure.mutation(async ({ ctx }) => {
       const scopeKey = `submissions:${ctx.user.id}`;
-      const db = await beginCodeforcesSync(scopeKey);
+      const sync = await beginCodeforcesSync(scopeKey);
+      const { db } = sync;
       try {
         const link = (
           await db
@@ -1176,14 +1195,25 @@ export const olimpRouter = router({
             message:
               "Link a Codeforces handle before synchronizing public verdicts.",
           });
-        const page = await codeforcesAdapter.fetchSubmissionsPage({
-          handle: link.handle,
-          from: 1,
-          count: 1000,
+        const collected = await collectNewSubmissionPages({
+          cursor: sync.cursor,
+          pageSize: 1000,
+          fetchPage: (from, count) =>
+            codeforcesAdapter.fetchSubmissionsPage({
+              handle: link.handle,
+              from,
+              count,
+            }),
         });
-        if (page.status !== "success")
-          throw new TRPCError({ code: "BAD_GATEWAY", message: page.message });
-        const keys = page.data.map(submission => submission.externalProblemKey);
+        if (collected.status !== "success")
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message: collected.message,
+          });
+        const submissions = collected.data.items;
+        const keys = submissions.map(
+          submission => submission.externalProblemKey
+        );
         const knownProblems = keys.length
           ? await db
               .select()
@@ -1198,7 +1228,7 @@ export const olimpRouter = router({
         const problemByKey = new Map(
           knownProblems.map(problem => [problem.externalKey, problem.id])
         );
-        const records = page.data.map(submission => ({
+        const records = submissions.map(submission => ({
           userId: ctx.user.id,
           sourceId: codeforcesAdapter.sourceId,
           externalSubmissionId: submission.externalSubmissionId,
@@ -1232,8 +1262,15 @@ export const olimpRouter = router({
           eventType: "codeforces_submissions_synced",
           metadata: { importedCount: records.length },
         });
-        await finishCodeforcesSync(db, scopeKey);
-        return { importedCount: records.length, handle: link.handle };
+        const nextCursor = nextSubmissionCursor(sync.cursor, submissions);
+        const newSinceCursor = submissions.length;
+        await finishCodeforcesSync(db, scopeKey, undefined, nextCursor);
+        return {
+          importedCount: records.length,
+          newSinceCursor,
+          handle: link.handle,
+          scannedPages: collected.data.scannedPages,
+        };
       } catch (error) {
         await finishCodeforcesSync(db, scopeKey, error);
         throw error;
