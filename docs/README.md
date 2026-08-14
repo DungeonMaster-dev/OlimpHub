@@ -7,12 +7,12 @@ This directory contains the product and engineering documentation that should st
 - [product/PLATFORM_UX_RESEARCH.md](product/PLATFORM_UX_RESEARCH.md) — observed UX patterns from competitive-programming platforms and OlimpHub acceptance criteria.
 - [data/CODEFORCES_API.md](data/CODEFORCES_API.md) — official Codeforces API contract, limitations and adapter requirements.
 - [data/OTHER_SOURCES.md](data/OTHER_SOURCES.md) — source-access assessment for AtCoder, CSES, Kattis and olympiad archives.
+- [architecture/DATABASE.md](architecture/DATABASE.md) — source-independent canonical problem model, provenance and catalogue invariants.
 
 ## Planned documentation
 
 - `product/PRODUCT_SPEC.md` — product vision, users, core workflows and feature requirements.
 - `architecture/ARCHITECTURE.md` — system architecture and major technical decisions.
-- `architecture/DATABASE.md` — domain model, schema and indexing strategy.
 - `architecture/API.md` — public/internal API conventions and contracts.
 - `architecture/AI_ARCHITECTURE.md` — AI Coach, retrieval, providers and evaluation.
 - `architecture/SECURITY.md` — threat model, security controls and sandbox assumptions.
