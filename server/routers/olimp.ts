@@ -1,10 +1,12 @@
 import { TRPCError } from "@trpc/server";
+import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   activityEvents,
   codeforcesLinks,
   externalSubmissions,
+  idempotencyReceipts,
   problemHints,
   problemNotes,
   problems,
@@ -25,6 +27,13 @@ import {
   nextPermittedHintLevel,
   normalizeCodeforcesHandle,
 } from "../domain/learning";
+import { createActivityEventId } from "../domain/idempotency";
+import {
+  canBeginCodeforcesSync,
+  nextTrainingItemStatus,
+  normalizeCatalogueInput,
+  shouldWriteAttemptTransition,
+} from "../domain/workflows";
 
 const statusSchema = z.enum([
   "not_started",
@@ -68,15 +77,128 @@ async function writeActivity(input: {
   attemptId?: number | null;
   problemId?: number | null;
   metadata?: Record<string, unknown>;
+  clientEventId?: string;
 }) {
   const db = await requireDb();
-  await db.insert(activityEvents).values({
+  const values = {
     userId: input.userId,
     attemptId: input.attemptId ?? null,
     problemId: input.problemId ?? null,
     eventType: input.eventType,
     metadata: input.metadata ?? {},
+    clientEventId: input.clientEventId ?? createActivityEventId(input),
+  };
+  await db
+    .insert(activityEvents)
+    .values(values)
+    .onDuplicateKeyUpdate({ set: { clientEventId: values.clientEventId } });
+}
+
+async function beginMutationReceipt(
+  userId: number,
+  operation: string,
+  requestId?: string
+) {
+  if (!requestId)
+    return {
+      replay: null as Record<string, unknown> | null,
+      ownerToken: null as string | null,
+    };
+  const db = await requireDb();
+  const ownerToken = randomUUID();
+  await db
+    .insert(idempotencyReceipts)
+    .values({ userId, operation, requestId, ownerToken })
+    .onDuplicateKeyUpdate({ set: { requestId: sql`requestId` } });
+  const receipt = (
+    await db
+      .select()
+      .from(idempotencyReceipts)
+      .where(
+        and(
+          eq(idempotencyReceipts.userId, userId),
+          eq(idempotencyReceipts.operation, operation),
+          eq(idempotencyReceipts.requestId, requestId)
+        )
+      )
+      .limit(1)
+  )[0]!;
+  if (receipt.ownerToken === ownerToken)
+    return { replay: null as Record<string, unknown> | null, ownerToken };
+  if (receipt.status === "completed" && receipt.response)
+    return { replay: receipt.response, ownerToken: null };
+  throw new TRPCError({
+    code: "CONFLICT",
+    message:
+      "An identical request is already being processed. Retry after it completes.",
   });
+}
+
+async function completeMutationReceipt(
+  userId: number,
+  operation: string,
+  requestId: string | undefined,
+  ownerToken: string | null,
+  response: Record<string, unknown>
+) {
+  if (!requestId || !ownerToken) return;
+  const db = await requireDb();
+  await db
+    .update(idempotencyReceipts)
+    .set({ status: "completed", response })
+    .where(
+      and(
+        eq(idempotencyReceipts.userId, userId),
+        eq(idempotencyReceipts.operation, operation),
+        eq(idempotencyReceipts.requestId, requestId),
+        eq(idempotencyReceipts.ownerToken, ownerToken)
+      )
+    );
+}
+
+async function failMutationReceipt(
+  userId: number,
+  operation: string,
+  requestId: string | undefined,
+  ownerToken: string | null
+) {
+  if (!requestId || !ownerToken) return;
+  const db = await requireDb();
+  await db
+    .update(idempotencyReceipts)
+    .set({ status: "failed" })
+    .where(
+      and(
+        eq(idempotencyReceipts.userId, userId),
+        eq(idempotencyReceipts.operation, operation),
+        eq(idempotencyReceipts.requestId, requestId),
+        eq(idempotencyReceipts.ownerToken, ownerToken)
+      )
+    );
+}
+
+async function withMutationReceipt<T extends Record<string, unknown>>(
+  userId: number,
+  operation: string,
+  requestId: string | undefined,
+  work: () => Promise<T>
+) {
+  const receipt = await beginMutationReceipt(userId, operation, requestId);
+  if (receipt.replay) return receipt.replay as T;
+  try {
+    const response = await work();
+    await completeMutationReceipt(
+      userId,
+      operation,
+      requestId,
+      receipt.ownerToken,
+      response
+    );
+    return response;
+  } catch (error) {
+    await failMutationReceipt(userId, operation, requestId, receipt.ownerToken);
+    throw error;
+  }
 }
 
 async function getOwnedAttempt(userId: number, attemptId: number) {
@@ -129,7 +251,7 @@ type CodeforcesSubmission = {
   problem?: CodeforcesProblem;
 };
 
-async function fetchCodeforces<T>(
+export async function fetchCodeforces<T>(
   method: string,
   params: Record<string, string> = {}
 ) {
@@ -161,6 +283,13 @@ async function fetchCodeforces<T>(
       });
     }
     return payload.result;
+  } catch (error) {
+    if (error instanceof TRPCError) throw error;
+    throw new TRPCError({
+      code: "BAD_GATEWAY",
+      message: "Codeforces is temporarily unavailable.",
+      cause: error,
+    });
   } finally {
     clearTimeout(timeout);
   }
@@ -181,10 +310,7 @@ async function beginCodeforcesSync(scopeKey: string) {
       .limit(1)
   )[0];
   const now = new Date();
-  if (
-    existing?.lastStartedAt &&
-    now.getTime() - existing.lastStartedAt.getTime() < 60_000
-  ) {
+  if (!canBeginCodeforcesSync(existing?.lastStartedAt, now)) {
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
       message: "Please wait one minute before repeating this Codeforces sync.",
@@ -295,29 +421,31 @@ export const olimpRouter = router({
       )
       .query(async ({ ctx, input }) => {
         const db = await requireDb();
+        const filter = normalizeCatalogueInput(input);
         const conditions = [];
-        if (input.source) conditions.push(eq(problems.sourceId, input.source));
-        if (input.minDifficulty !== undefined)
-          conditions.push(gte(problems.difficulty, input.minDifficulty));
+        if (filter.source)
+          conditions.push(eq(problems.sourceId, filter.source));
+        if (filter.minDifficulty !== undefined)
+          conditions.push(gte(problems.difficulty, filter.minDifficulty));
         if (input.maxDifficulty !== undefined)
           conditions.push(
             sql`${problems.difficulty} <= ${input.maxDifficulty}`
           );
-        if (input.query) {
-          const pattern = `%${input.query!.replace(/[\\%_]/g, "\\$&")}%`;
+        if (filter.query) {
+          const pattern = `%${filter.query.replace(/[\\%_]/g, "\\$&")}%`;
           conditions.push(
             or(
               like(problems.title, pattern),
-              sql`JSON_SEARCH(${problems.tags}, 'one', ${input.query!}) IS NOT NULL`
+              sql`JSON_SEARCH(${problems.tags}, 'one', ${filter.query}) IS NOT NULL`
             )!
           );
         }
         let problemIds: number[] | undefined;
-        if (input.skillId) {
+        if (filter.skillId) {
           const linked = await db
             .select({ problemId: problemSkills.problemId })
             .from(problemSkills)
-            .where(eq(problemSkills.skillId, input.skillId));
+            .where(eq(problemSkills.skillId, filter.skillId));
           problemIds = linked.map(row => row.problemId);
           if (!problemIds.length) return { items: [], total: 0 };
           conditions.push(inArray(problems.id, problemIds));
@@ -329,8 +457,8 @@ export const olimpRouter = router({
           .orderBy(asc(problems.difficulty), asc(problems.title))
           .limit(input.pageSize * 3)
           .offset(input.page * input.pageSize);
-        const filtered = input.tag
-          ? raw.filter(problem => problem.tags.includes(input.tag!))
+        const filtered = filter.tag
+          ? raw.filter(problem => problem.tags.includes(filter.tag!))
           : raw;
         const page = filtered.slice(0, input.pageSize);
         const progressRows = page.length
@@ -473,10 +601,20 @@ export const olimpRouter = router({
       .mutation(async ({ ctx, input }) => {
         const db = await requireDb();
         const attempt = await getOwnedAttempt(ctx.user.id, input.attemptId);
+        const requestedOutcome = input.outcome ?? attempt.outcome;
+        if (
+          !shouldWriteAttemptTransition(
+            attempt.state,
+            input.state,
+            attempt.outcome,
+            requestedOutcome
+          )
+        )
+          return { success: true, deduplicated: true };
         const now = new Date();
         const values = {
           state: input.state,
-          outcome: input.outcome ?? attempt.outcome,
+          outcome: requestedOutcome,
           pausedAt: input.state === "paused" ? now : null,
           endedAt: ["completed", "abandoned"].includes(input.state)
             ? now
@@ -588,56 +726,64 @@ export const olimpRouter = router({
           problemId: z.number().int().positive(),
           attemptId: z.number().int().positive().optional(),
           content: z.string().trim().min(1).max(12_000),
+          requestId: z.string().uuid().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
         const db = await requireDb();
-        if (input.attemptId)
-          await getOwnedAttempt(ctx.user.id, input.attemptId);
-        if (input.noteId) {
-          const note = (
-            await db
-              .select()
-              .from(problemNotes)
-              .where(
-                and(
-                  eq(problemNotes.id, input.noteId),
-                  eq(problemNotes.userId, ctx.user.id)
-                )
-              )
-              .limit(1)
-          )[0];
-          if (!note)
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Note not found.",
+        return withMutationReceipt(
+          ctx.user.id,
+          "workspace.save_note",
+          input.requestId,
+          async () => {
+            if (input.attemptId)
+              await getOwnedAttempt(ctx.user.id, input.attemptId);
+            if (input.noteId) {
+              const note = (
+                await db
+                  .select()
+                  .from(problemNotes)
+                  .where(
+                    and(
+                      eq(problemNotes.id, input.noteId),
+                      eq(problemNotes.userId, ctx.user.id)
+                    )
+                  )
+                  .limit(1)
+              )[0];
+              if (!note)
+                throw new TRPCError({
+                  code: "NOT_FOUND",
+                  message: "Note not found.",
+                });
+              await db
+                .update(problemNotes)
+                .set({
+                  content: input.content,
+                  revision: note.revision + 1,
+                  attemptId: input.attemptId ?? note.attemptId,
+                })
+                .where(eq(problemNotes.id, note.id));
+              return { id: note.id };
+            }
+            const inserted = await db
+              .insert(problemNotes)
+              .values({
+                userId: ctx.user.id,
+                problemId: input.problemId,
+                attemptId: input.attemptId ?? null,
+                content: input.content,
+              })
+              .$returningId();
+            await writeActivity({
+              userId: ctx.user.id,
+              problemId: input.problemId,
+              attemptId: input.attemptId,
+              eventType: "note_saved",
             });
-          await db
-            .update(problemNotes)
-            .set({
-              content: input.content,
-              revision: note.revision + 1,
-              attemptId: input.attemptId ?? note.attemptId,
-            })
-            .where(eq(problemNotes.id, note.id));
-          return { id: note.id };
-        }
-        const inserted = await db
-          .insert(problemNotes)
-          .values({
-            userId: ctx.user.id,
-            problemId: input.problemId,
-            attemptId: input.attemptId ?? null,
-            content: input.content,
-          })
-          .$returningId();
-        await writeActivity({
-          userId: ctx.user.id,
-          problemId: input.problemId,
-          attemptId: input.attemptId,
-          eventType: "note_saved",
-        });
-        return inserted[0];
+            return inserted[0]!;
+          }
+        );
       }),
     nextHint: protectedProcedure
       .input(z.object({ attemptId: z.number().int().positive() }))
@@ -697,44 +843,53 @@ export const olimpRouter = router({
         z.object({
           title: z.string().trim().min(3).max(180),
           problemIds: z.array(z.number().int().positive()).min(1).max(20),
+          requestId: z.string().uuid().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
         const db = await requireDb();
-        const existingProblems = await db
-          .select({ id: problems.id })
-          .from(problems)
-          .where(inArray(problems.id, input.problemIds));
-        if (existingProblems.length !== input.problemIds.length)
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "A selected problem is unavailable.",
-          });
-        const sessionId = (
-          await db
-            .insert(trainingSessions)
-            .values({
+        return withMutationReceipt(
+          ctx.user.id,
+          "training.create",
+          input.requestId,
+          async () => {
+            const existingProblems = await db
+              .select({ id: problems.id })
+              .from(problems)
+              .where(inArray(problems.id, input.problemIds));
+            if (existingProblems.length !== input.problemIds.length)
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "A selected problem is unavailable.",
+              });
+            const sessionId = (
+              await db
+                .insert(trainingSessions)
+                .values({
+                  userId: ctx.user.id,
+                  title: input.title,
+                  status: "active",
+                  startedAt: new Date(),
+                })
+                .$returningId()
+            )[0]!.id;
+            await db.insert(trainingItems).values(
+              input.problemIds.map((problemId, position) => ({
+                sessionId,
+                problemId,
+                position,
+                status:
+                  position === 0 ? ("active" as const) : ("queued" as const),
+              }))
+            );
+            await writeActivity({
               userId: ctx.user.id,
-              title: input.title,
-              status: "active",
-              startedAt: new Date(),
-            })
-            .$returningId()
-        )[0]!.id;
-        await db.insert(trainingItems).values(
-          input.problemIds.map((problemId, position) => ({
-            sessionId,
-            problemId,
-            position,
-            status: position === 0 ? ("active" as const) : ("queued" as const),
-          }))
+              eventType: "training_started",
+              metadata: { sessionId, problemCount: input.problemIds.length },
+            });
+            return { id: sessionId };
+          }
         );
-        await writeActivity({
-          userId: ctx.user.id,
-          eventType: "training_started",
-          metadata: { sessionId, problemCount: input.problemIds.length },
-        });
-        return { id: sessionId };
       }),
     detail: protectedProcedure
       .input(z.object({ sessionId: z.number().int().positive() }))
@@ -809,11 +964,14 @@ export const olimpRouter = router({
             code: "NOT_FOUND",
             message: "Training item not found.",
           });
+        const nextStatus = nextTrainingItemStatus(item.status, input.status);
+        if (nextStatus === item.status)
+          return { success: true, deduplicated: true };
         await db
           .update(trainingItems)
           .set({
-            status: input.status,
-            completedAt: input.status === "completed" ? new Date() : null,
+            status: nextStatus,
+            completedAt: nextStatus === "completed" ? new Date() : null,
           })
           .where(eq(trainingItems.id, item.id));
         return { success: true };

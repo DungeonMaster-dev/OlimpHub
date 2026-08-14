@@ -49,8 +49,8 @@
 - [x] P0-108 Add Docker development environment. A Node 22 dev-container supports reproducible local container workflows without replacing managed production builds (completed 2026-08-14).
 - [x] P0-109 Add CI pipeline. GitHub Actions verifies install, lint, format, tests, types and production build (completed 2026-08-14).
 - [x] P0-110 Add health/readiness endpoints. `GET /api/healthz` and `GET /api/readyz` are verified against the running service (completed 2026-08-14).
-- [ ] P0-111 Add durable idempotency receipts for retryable personal mutations and activity events.
-- [ ] P0-112 Add behavioural tests for catalogue filters, attempt lifecycle, training progression and Codeforces sync cooldown/error paths.
+- [x] P0-111 Add durable idempotency receipts for retryable personal mutations and activity events. Durable receipts now replay note-save/training-create responses; activity events and no-op transitions are deduplicated (completed 2026-08-14).
+- [x] P0-112 Add behavioural tests for catalogue filters, attempt lifecycle, training progression and Codeforces sync cooldown/error paths. Workflow and Codeforces transport regression suites cover normalization, lifecycle guards, cooldown, accepted, rejected and failed provider responses (completed 2026-08-14).
 
 # Phase 2 — Core UI
 

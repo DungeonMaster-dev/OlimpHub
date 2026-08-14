@@ -18,6 +18,8 @@ OlimpHub uses typed tRPC procedures under `/api/trpc`. Browser clients do not ca
 
 The public `GET /api/healthz` endpoint reports process liveness. `GET /api/readyz` additionally executes a bounded database query and returns `503` when the application cannot use its persistence layer. Health responses do not disclose account, configuration or source data.
 
+Retry-sensitive note saves and training-session creation accept a UUID `requestId`. The server stores a durable receipt keyed by `(user, operation, requestId)`: the first request owns execution, a completed retry receives the original response, and a concurrent duplicate is rejected without creating a second personal record. Activity events additionally use deterministic unique event IDs, while unchanged attempt transitions and terminal training items are no-ops.
+
 Codeforces catalogue refresh is user-initiated for the current first release. Periodic synchronization is deliberately deferred until the deployed callback workflow has been enabled and tested; there are no in-process timers.
 
 ## References

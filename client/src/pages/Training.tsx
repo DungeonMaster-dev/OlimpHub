@@ -77,7 +77,13 @@ export default function Training() {
             )}
           </div>
           <button
-            onClick={() => create.mutate({ title, problemIds: selected })}
+            onClick={() =>
+              create.mutate({
+                title,
+                problemIds: selected,
+                requestId: crypto.randomUUID(),
+              })
+            }
             disabled={!selected.length || create.isPending}
             className="primary-button mt-5"
           >

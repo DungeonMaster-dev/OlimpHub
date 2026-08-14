@@ -132,6 +132,7 @@ export default function Workspace() {
                     problemId,
                     attemptId: attemptId ?? undefined,
                     content: note,
+                    requestId: crypto.randomUUID(),
                   })
                 }
                 disabled={!note.trim() || saveNote.isPending}

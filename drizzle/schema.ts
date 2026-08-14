@@ -302,6 +302,36 @@ export const activityEvents = mysqlTable(
   ]
 );
 
+export const idempotencyReceipts = mysqlTable(
+  "idempotency_receipts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    operation: varchar("operation", { length: 80 }).notNull(),
+    requestId: varchar("requestId", { length: 96 }).notNull(),
+    ownerToken: varchar("ownerToken", { length: 96 }).notNull(),
+    status: mysqlEnum("status", ["pending", "completed", "failed"])
+      .default("pending")
+      .notNull(),
+    response: json("response").$type<Record<string, unknown>>(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("idempotency_receipts_user_operation_request_unique").on(
+      table.userId,
+      table.operation,
+      table.requestId
+    ),
+    index("idempotency_receipts_user_created_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+  ]
+);
+
 export const trainingSessions = mysqlTable(
   "training_sessions",
   {

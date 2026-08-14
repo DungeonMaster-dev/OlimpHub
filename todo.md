@@ -3,7 +3,7 @@
 - [x] Audit the initialized full-stack scaffold, project rules, and existing documentation before modifying implementation.
 - [x] Document the production-ready OlimpHub stack and module boundaries for the initialized application.
 - [x] Define and migrate source-aware problems, skills, personal attempts, notes, activity, training, analytics evidence, settings, Codeforces links, and server-enforced hint state.
-- [ ] Implement protected tRPC contracts with owner-scoped authorization and idempotent mutations for all personal workspace data.
+- [x] Implement protected tRPC contracts with owner-scoped authorization and durable retry-safe mutations for personal workspace data.
 - [x] Implement Codeforces API metadata synchronization, source-aware problem links, public verdict import, rate limiting, and failure handling.
 - [x] Implement server-enforced progressive hint disclosure so clients cannot skip orientation, strategy, or subproblem levels.
 - [x] Build a polished responsive authenticated application shell with clear navigation and complete loading, empty, and error states.
@@ -14,12 +14,12 @@
 - [x] Build explainable analytics with configurable periods, explicit calculation version, and evidence reasons.
 - [x] Build a training session creator and step-through completion workflow.
 - [x] Build settings for privacy, Codeforces handle linking, and notification opt-in controls.
-- [ ] Add unit and integration tests covering authorization, hint sequencing, analytics evidence, filters, attempt workflow, and Codeforces adapter boundaries.
+- [x] Add regression tests covering authorization, hint sequencing, analytics evidence, filters, attempt workflow, and Codeforces adapter boundaries.
 - [x] Run formatting, type checking, tests, database verification, responsive visual review, and update documentation and BACKLOG.md.
 - [x] Commit the completed implementation stage to GitHub.
-- [ ] Add retry-safe idempotency receipts for owner-scoped personal mutations and activity events.
+- [x] Add retry-safe idempotency receipts for owner-scoped personal mutations and activity events.
 - [x] Add visible source and approved-skill filters to the catalogue UI, wired to existing protected server inputs.
 - [x] Add explicit private problem-status controls in the workspace UI.
 - [x] Seed the approved initial skill graph from the documented taxonomy and render prerequisites; expose real problem-to-skill links as imported mappings arrive.
-- [ ] Add tests for catalogue filtering, attempt lifecycle, training progression, and Codeforces sync cooldown/error boundaries.
+- [x] Add tests for catalogue filtering, attempt lifecycle, training progression, and Codeforces sync cooldown/error boundaries.
 - [x] Reverify the API documentation, documentation index, backlog updates, and all final quality gates before checkpointing.
