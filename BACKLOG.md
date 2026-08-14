@@ -35,7 +35,7 @@
 - [!] P0-008a Validate and provision an isolated execution environment with hardware virtualisation or an equivalent managed runtime before any user-code execution implementation. Blocked: requires infrastructure ownership and deployment approval; see `docs/architecture/EXECUTION_SECURITY.md`.
 - [x] P0-009 Define Telegram integration architecture. See `docs/architecture/TELEGRAM_ARCHITECTURE.md` (completed 2026-08-14).
 - [!] P0-009a Provision a Telegram bot token, a managed secret and a public HTTPS webhook endpoint before enabling the integration. Blocked: requires a BotFather-created token and deployment ownership; see `docs/architecture/TELEGRAM_ARCHITECTURE.md`.
-- [ ] P0-010 Produce architecture, product, security and data-source documentation.
+- [x] P0-010 Produce architecture, product, security and data-source documentation. See `docs/product/PRODUCT_SPEC.md`, `docs/architecture/ARCHITECTURE.md`, `docs/architecture/SECURITY.md` and `docs/data/DATA_SOURCES.md` (completed 2026-08-14).
 
 # Phase 1 — Engineering Foundation
 
