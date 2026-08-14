@@ -33,7 +33,8 @@
 - [x] P0-007 Define AI Coach architecture and provider abstraction. See `docs/architecture/AI_ARCHITECTURE.md` (completed 2026-08-14).
 - [x] P0-008 Define secure code execution architecture. See `docs/architecture/EXECUTION_SECURITY.md` (completed 2026-08-14).
 - [!] P0-008a Validate and provision an isolated execution environment with hardware virtualisation or an equivalent managed runtime before any user-code execution implementation. Blocked: requires infrastructure ownership and deployment approval; see `docs/architecture/EXECUTION_SECURITY.md`.
-- [ ] P0-009 Define Telegram integration architecture.
+- [x] P0-009 Define Telegram integration architecture. See `docs/architecture/TELEGRAM_ARCHITECTURE.md` (completed 2026-08-14).
+- [!] P0-009a Provision a Telegram bot token, a managed secret and a public HTTPS webhook endpoint before enabling the integration. Blocked: requires a BotFather-created token and deployment ownership; see `docs/architecture/TELEGRAM_ARCHITECTURE.md`.
 - [ ] P0-010 Produce architecture, product, security and data-source documentation.
 
 # Phase 1 — Engineering Foundation

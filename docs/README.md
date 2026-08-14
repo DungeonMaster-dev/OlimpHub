@@ -12,6 +12,7 @@ This directory contains the product and engineering documentation that should st
 - [architecture/SKILL_TAXONOMY.md](architecture/SKILL_TAXONOMY.md) — versioned algorithm and mathematics skills DAG with explainable mappings.
 - [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md) — provider abstraction, safe context, progressive hints and AI Coach controls.
 - [architecture/EXECUTION_SECURITY.md](architecture/EXECUTION_SECURITY.md) — isolated code execution boundary, resource limits and security controls.
+- [architecture/TELEGRAM_ARCHITECTURE.md](architecture/TELEGRAM_ARCHITECTURE.md) — webhook security, account linking, commands and notification delivery.
 
 ## Planned documentation
 
