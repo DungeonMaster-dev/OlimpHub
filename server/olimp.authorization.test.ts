@@ -33,4 +33,15 @@ describe("OlimpHub protected workspace", () => {
       code: "UNAUTHORIZED",
     });
   });
+
+  it("rejects anonymous canonicalization changes before reading catalogue data", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+    await expect(
+      caller.olimp.canonicalization.proposeRelation({
+        firstProblemId: 1,
+        secondProblemId: 2,
+        relationType: "same_problem",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
 });

@@ -186,7 +186,7 @@ erDiagram
 
 ## 13. Последствия для последующих задач
 
-P0-005 ссылается на `Problem.id`, но не дублирует сведения о задаче в активности/отправке. P0-006 создаёт `Skill`, на который указывает `ProblemSkillLink`. P1-301 реализует типизированный адаптер и `ImportRun`; P1-304 строит nondestructive canonicalization поверх `ProblemRelation`. P1-401—P1-404 связывают внешние отправки пользователя с `ExternalProblemRef`, а не с URL или названием.
+P0-005 ссылается на `Problem.id`, но не дублирует сведения о задаче в активности/отправке. P0-006 создаёт `Skill`, на который указывает `ProblemSkillLink`. P1-301 реализует типизированный адаптер и `ImportRun`; P1-304 реализован как nondestructive canonicalization поверх `ProblemRelation`: пара нормализуется по ID, предложение и review выполняются только администратором, а approval `same_problem` меняет только явный status обеих исходных записей. P1-401—P1-404 связывают внешние отправки пользователя с `ExternalProblemRef`, а не с URL или названием.
 
 ## References
 

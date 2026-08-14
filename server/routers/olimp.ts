@@ -9,6 +9,7 @@ import {
   idempotencyReceipts,
   problemHints,
   problemNotes,
+  problemRelations,
   problems,
   problemSkills,
   skillEdges,
@@ -21,7 +22,7 @@ import {
   userSettings,
 } from "../../drizzle/schema";
 import { getDb } from "../db";
-import { protectedProcedure, router } from "../_core/trpc";
+import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
   buildAnalyticsEvidence,
   nextPermittedHintLevel,
@@ -40,6 +41,11 @@ import {
   collectNewSubmissionPages,
   nextSubmissionCursor,
 } from "../domain/ingestion";
+import {
+  normalizeProblemRelation,
+  problemRelationTypes,
+  reconcileCanonicalizationStatus,
+} from "../domain/canonicalization";
 
 const statusSchema = z.enum([
   "not_started",
@@ -302,6 +308,66 @@ async function finishCodeforcesSync(
         eq(sourceSyncStates.scopeKey, scopeKey)
       )
     );
+}
+
+async function reconcileProblemCanonicalizationStatuses(
+  db: Omit<NonNullable<Awaited<ReturnType<typeof getDb>>>, "$client">,
+  problemIds: number[]
+) {
+  const uniqueProblemIds = Array.from(new Set(problemIds));
+  if (!uniqueProblemIds.length) return;
+  const [affectedProblems, duplicateRelations] = await Promise.all([
+    db
+      .select({
+        id: problems.id,
+        canonicalizationStatus: problems.canonicalizationStatus,
+      })
+      .from(problems)
+      .where(inArray(problems.id, uniqueProblemIds)),
+    db
+      .select({
+        leftProblemId: problemRelations.leftProblemId,
+        rightProblemId: problemRelations.rightProblemId,
+        relationType: problemRelations.relationType,
+        reviewStatus: problemRelations.reviewStatus,
+      })
+      .from(problemRelations)
+      .where(
+        and(
+          or(
+            inArray(problemRelations.leftProblemId, uniqueProblemIds),
+            inArray(problemRelations.rightProblemId, uniqueProblemIds)
+          ),
+          inArray(problemRelations.relationType, [
+            "same_problem",
+            "duplicate_candidate",
+          ])
+        )
+      ),
+  ]);
+  await Promise.all(
+    affectedProblems.map(problem => {
+      const status = reconcileCanonicalizationStatus({
+        currentStatus: problem.canonicalizationStatus,
+        relations: duplicateRelations
+          .filter(
+            relation =>
+              relation.leftProblemId === problem.id ||
+              relation.rightProblemId === problem.id
+          )
+          .map(relation => ({
+            relationType: relation.relationType,
+            reviewStatus: relation.reviewStatus,
+          })),
+      });
+      return status === problem.canonicalizationStatus
+        ? Promise.resolve()
+        : db
+            .update(problems)
+            .set({ canonicalizationStatus: status })
+            .where(eq(problems.id, problem.id));
+    })
+  );
 }
 
 export const olimpRouter = router({
@@ -1276,5 +1342,110 @@ export const olimpRouter = router({
         throw error;
       }
     }),
+  }),
+  canonicalization: router({
+    proposeRelation: adminProcedure
+      .input(
+        z.object({
+          firstProblemId: z.number().int().positive(),
+          secondProblemId: z.number().int().positive(),
+          relationType: z.enum(problemRelationTypes),
+          confidence: z.number().int().min(0).max(100).default(100),
+          origin: z.enum(["source_evidence", "curator"]).default("curator"),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const relation = normalizeProblemRelation(input);
+        const matchingProblems = await db
+          .select({ id: problems.id })
+          .from(problems)
+          .where(
+            inArray(problems.id, [
+              relation.leftProblemId,
+              relation.rightProblemId,
+            ])
+          );
+        if (matchingProblems.length !== 2) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Both problems must exist before they can be related.",
+          });
+        }
+        await db.transaction(async tx => {
+          await tx
+            .insert(problemRelations)
+            .values({
+              ...relation,
+              confidence: input.confidence,
+              origin: input.origin,
+              reviewStatus: "proposed",
+              createdByUserId: ctx.user.id,
+            })
+            .onDuplicateKeyUpdate({ set: { id: sql`id` } });
+          await reconcileProblemCanonicalizationStatuses(tx, [
+            relation.leftProblemId,
+            relation.rightProblemId,
+          ]);
+        });
+        const saved = (
+          await db
+            .select()
+            .from(problemRelations)
+            .where(
+              and(
+                eq(problemRelations.leftProblemId, relation.leftProblemId),
+                eq(problemRelations.rightProblemId, relation.rightProblemId),
+                eq(problemRelations.relationType, relation.relationType)
+              )
+            )
+            .limit(1)
+        )[0]!;
+        return { relation: saved };
+      }),
+    reviewRelation: adminProcedure
+      .input(
+        z.object({
+          relationId: z.number().int().positive(),
+          decision: z.enum(["approved", "rejected"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const relation = (
+          await db
+            .select()
+            .from(problemRelations)
+            .where(eq(problemRelations.id, input.relationId))
+            .limit(1)
+        )[0];
+        if (!relation) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "The requested problem relation does not exist.",
+          });
+        }
+        if (relation.reviewStatus !== "proposed") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Only proposed relations can be reviewed.",
+          });
+        }
+        await db.transaction(async tx => {
+          await tx
+            .update(problemRelations)
+            .set({
+              reviewStatus: input.decision,
+              reviewedByUserId: ctx.user.id,
+              reviewedAt: new Date(),
+            })
+            .where(eq(problemRelations.id, relation.id));
+          await reconcileProblemCanonicalizationStatuses(tx, [
+            relation.leftProblemId,
+            relation.rightProblemId,
+          ]);
+        });
+        return { relationId: relation.id, decision: input.decision };
+      }),
   }),
 });

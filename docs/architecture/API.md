@@ -16,6 +16,7 @@ OlimpHub uses typed tRPC procedures under `/api/trpc`. Browser clients do not ca
 | Settings           | `settings.get`, `update`, `setCodeforcesHandle`              | Preferences and linked handle are private and user-scoped.                                                                                       |
 | Codeforces         | `codeforces.syncCatalogue`, `syncSubmissions`                | Uses the official API from the server, records sync status, and enforces a one-minute scope cooldown.                                            |
 | Submission history | `submissions.list`                                           | Returns only the authenticated user's imported public verdicts, supports verdict filtering, and joins canonical problem metadata when available. |
+| Canonicalization   | `canonicalization.proposeRelation`, `reviewRelation`         | Admin-only, nondestructive review flow; it preserves every source problem and all personal history rather than merging rows.                     |
 
 External-source traffic crosses a dedicated adapter boundary. `ProblemSourceAdapter` produces normalized source-neutral problem and submission records plus a typed source outcome; the application router persists successful results and records failed source runs without treating a provider error as an empty dataset.
 
@@ -24,6 +25,8 @@ The public `GET /api/healthz` endpoint reports process liveness. `GET /api/ready
 Retry-sensitive note saves and training-session creation accept a UUID `requestId`. The server stores a durable receipt keyed by `(user, operation, requestId)`: the first request owns execution, a completed retry receives the original response, and a concurrent duplicate is rejected without creating a second personal record. Activity events additionally use deterministic unique event IDs, while unchanged attempt transitions and terminal training items are no-ops.
 
 Codeforces catalogue refresh is user-initiated for the current first release. Periodic synchronization is deliberately deferred until the deployed callback workflow has been enabled and tested; there are no in-process timers.
+
+Canonicalization accepts only explicit, normalized pairs of two different existing problems. A proposal may mark duplicate evidence as pending; only approval of a `same_problem` relation marks the pair as linked. After every proposal or review decision, status is reconciled from all remaining active duplicate relations, so a rejected proposal cannot leave a stale candidate flag. The API never infers a relation from a title, tag set, or URL alone, and never rewrites `problemId` in attempts, training items, progress, notes, or external submissions.
 
 ## References
 

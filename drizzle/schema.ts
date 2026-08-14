@@ -110,6 +110,14 @@ export const problems = mysqlTable(
     ])
       .default("external_link")
       .notNull(),
+    canonicalizationStatus: mysqlEnum("canonicalizationStatus", [
+      "source_distinct",
+      "candidate_duplicate",
+      "linked_duplicate",
+      "canonical",
+    ])
+      .default("source_distinct")
+      .notNull(),
     sourceUpdatedAt: timestamp("sourceUpdatedAt"),
     importedAt: timestamp("importedAt").defaultNow().notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -125,6 +133,58 @@ export const problems = mysqlTable(
       table.difficulty
     ),
     index("problems_title_idx").on(table.title),
+  ]
+);
+
+export const problemRelations = mysqlTable(
+  "problem_relations",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    leftProblemId: int("leftProblemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    rightProblemId: int("rightProblemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    relationType: mysqlEnum("relationType", [
+      "same_problem",
+      "translation_of",
+      "adapted_from",
+      "duplicate_candidate",
+      "prerequisite",
+      "follow_up",
+      "variant_of",
+    ]).notNull(),
+    confidence: int("confidence").default(100).notNull(),
+    origin: mysqlEnum("origin", ["source_evidence", "curator"])
+      .default("curator")
+      .notNull(),
+    reviewStatus: mysqlEnum("reviewStatus", [
+      "proposed",
+      "approved",
+      "rejected",
+    ])
+      .default("proposed")
+      .notNull(),
+    createdByUserId: int("createdByUserId").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reviewedByUserId: int("reviewedByUserId").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reviewedAt: timestamp("reviewedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("problem_relations_unique").on(
+      table.leftProblemId,
+      table.rightProblemId,
+      table.relationType
+    ),
+    index("problem_relations_left_idx").on(table.leftProblemId),
+    index("problem_relations_right_idx").on(table.rightProblemId),
+    index("problem_relations_review_idx").on(table.reviewStatus),
   ]
 );
 
