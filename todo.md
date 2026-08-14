@@ -34,3 +34,4 @@
 - [x] Implement P1-304 nondestructive problem deduplication and canonicalization relations with administrator review controls.
 - [x] Reconcile canonicalization status after rejected review so a stale candidate flag cannot remain when no pending or approved duplicate relation exists.
 - [x] Add P1-304 regression coverage for rejected duplicate proposals and status recomputation.
+- [x] Implement P1-305 provider-wide Codeforces request coordination, success-only caching, and deterministic cache/rate-limit regressions.

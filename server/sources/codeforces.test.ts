@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { CodeforcesAdapter } from "./codeforces";
+import { SourceRequestCoordinator } from "./requestCoordinator";
 
 function adapterWith(response: unknown) {
   return new CodeforcesAdapter(
-    vi.fn().mockResolvedValue(response) as unknown as typeof fetch
+    vi.fn().mockResolvedValue(response) as unknown as typeof fetch,
+    new SourceRequestCoordinator({ minIntervalMs: 0 })
   );
 }
 
@@ -78,6 +80,20 @@ describe("Codeforces adapter", () => {
     await expect(adapter.fetchProblemSnapshot()).resolves.toMatchObject({
       status: "retryable_failure",
     });
+  });
+
+  it("reuses a successful problem snapshot within the explicit catalogue cache TTL", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "OK", result: { problems: [] } }),
+    }) as unknown as typeof fetch;
+    const adapter = new CodeforcesAdapter(
+      fetchImpl,
+      new SourceRequestCoordinator({ minIntervalMs: 0 })
+    );
+    await adapter.fetchProblemSnapshot();
+    await adapter.fetchProblemSnapshot();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it("distinguishes an invalid handle from a rate limit", async () => {

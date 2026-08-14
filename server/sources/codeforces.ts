@@ -5,6 +5,15 @@ import type {
   SourceResult,
   SourceSubmissionPage,
 } from "./types";
+import {
+  SourceRequestCoordinator,
+  stableRequestCacheKey,
+} from "./requestCoordinator";
+
+const codeforcesRequestCoordinator = new SourceRequestCoordinator({
+  minIntervalMs: 2200,
+});
+const catalogueCacheTtlMs = 5 * 60 * 1000;
 
 export type CodeforcesProblem = {
   contestId?: number;
@@ -49,9 +58,23 @@ function classifyFailure(
 
 export class CodeforcesAdapter implements ProblemSourceAdapter {
   readonly sourceId = "codeforces";
-  constructor(private readonly fetchImpl: typeof fetch = fetch) {}
+  constructor(
+    private readonly fetchImpl: typeof fetch = fetch,
+    private readonly requestCoordinator = codeforcesRequestCoordinator
+  ) {}
 
-  async request<T>(method: string, params: Record<string, string> = {}) {
+  async request<T>(
+    method: string,
+    params: Record<string, string> = {},
+    cacheTtlMs = 0
+  ) {
+    return this.requestCoordinator.run(
+      { cacheKey: stableRequestCacheKey(method, params), cacheTtlMs },
+      () => this.fetchJson<T>(method, params)
+    );
+  }
+
+  private async fetchJson<T>(method: string, params: Record<string, string>) {
     const url = new URL(`https://codeforces.com/api/${method}`);
     Object.entries(params).forEach(([key, value]) =>
       url.searchParams.set(key, value)
@@ -95,7 +118,9 @@ export class CodeforcesAdapter implements ProblemSourceAdapter {
     const observedAt = new Date();
     try {
       const result = await this.request<{ problems: CodeforcesProblem[] }>(
-        "problemset.problems"
+        "problemset.problems",
+        {},
+        catalogueCacheTtlMs
       );
       return {
         status: "success",

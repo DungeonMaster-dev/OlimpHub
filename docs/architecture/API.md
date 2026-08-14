@@ -18,7 +18,7 @@ OlimpHub uses typed tRPC procedures under `/api/trpc`. Browser clients do not ca
 | Submission history | `submissions.list`                                           | Returns only the authenticated user's imported public verdicts, supports verdict filtering, and joins canonical problem metadata when available. |
 | Canonicalization   | `canonicalization.proposeRelation`, `reviewRelation`         | Admin-only, nondestructive review flow; it preserves every source problem and all personal history rather than merging rows.                     |
 
-External-source traffic crosses a dedicated adapter boundary. `ProblemSourceAdapter` produces normalized source-neutral problem and submission records plus a typed source outcome; the application router persists successful results and records failed source runs without treating a provider error as an empty dataset.
+External-source traffic crosses a dedicated adapter boundary. `ProblemSourceAdapter` produces normalized source-neutral problem and submission records plus a typed source outcome; the application router persists successful results and records failed source runs without treating a provider error as an empty dataset. The Codeforces adapter has one in-process coordinator that coalesces identical active calls, leaves failures uncached, caches successful catalogue snapshots for five minutes, and spaces distinct provider calls by at least 2.2 seconds.
 
 The public `GET /api/healthz` endpoint reports process liveness. `GET /api/readyz` additionally executes a bounded database query and returns `503` when the application cannot use its persistence layer. Health responses do not disclose account, configuration or source data.
 

@@ -75,7 +75,7 @@
 - [x] P1-302 Implement Codeforces adapter. The live adapter normalizes official problem snapshots and public submission pages, classifies transient versus permanent failures, is used by sync routes, and has contract tests.
 - [x] P1-303 Implement Codeforces incremental synchronization. Catalogue fingerprints skip unchanged snapshots; submission sync walks multi-page overlap until the saved cursor or exhaustion, then advances a durable cursor only after successful persistence. Regression tests cover the >1000-new-submissions case.
 - [x] P1-304 Implement deduplication and canonicalization. Source identity remains unique by `(sourceId, externalKey)`; explicit administrator-reviewed `ProblemRelation` records provide nondestructive duplicate/canonical links without merging personal histories. Proposal and review decisions reconcile status from all remaining active relations, including the rejected-proposal regression path; the managed schema migration is applied.
-- [ ] P1-305 Implement caching and rate limiting.
+- [x] P1-305 Implement caching and rate limiting. A provider-wide in-process Codeforces coordinator coalesces identical in-flight calls, caches only successful catalogue snapshots for five minutes, never caches failures or submission pages, and spaces distinct upstream calls by at least 2.2 seconds; deterministic regressions pass.
 - [ ] P1-306 Implement AtCoder adapter.
 - [ ] P1-307 Implement CSES adapter/importer.
 - [ ] P1-308 Investigate and implement Kattis adapter if appropriate.
