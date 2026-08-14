@@ -27,3 +27,5 @@
 - [x] Correct any backlog status that is not supported by implemented and tested evidence.
 - [x] Implement P1-206 submission history, backed by imported external verdicts and owner-scoped server queries.
 - [x] Add tests and visual verification for P1-206 submission history, then document and commit it.
+- [x] Implement P1-301 source adapter interface with typed source outcomes, normalized Codeforces contracts, and adapter-boundary tests.
+- [x] Complete P1-301 failure classification and tests for permanent versus retryable Codeforces adapter outcomes.

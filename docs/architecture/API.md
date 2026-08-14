@@ -5,17 +5,19 @@
 
 OlimpHub uses typed tRPC procedures under `/api/trpc`. Browser clients do not call the database or Codeforces directly. All personal workspace procedures require a validated Manus session through `protectedProcedure`; every read and mutation scopes personal records by `ctx.user.id`.
 
-| Module     | Core procedures                                              | Server-enforced guarantee                                                                                     |
-| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Dashboard  | `olimp.dashboard`                                            | Returns only the authenticated user's attempts and activity.                                                  |
-| Catalogue  | `olimp.catalogue.list`, `detail`                             | Exposes source metadata and external links; no mirrored statement content is required.                        |
-| Workspace  | `start`, `setAttemptState`, `setStatus`, `notes`, `saveNote` | Attempts and notes are owned by the current user.                                                             |
-| Hints      | `workspace.nextHint`                                         | The client supplies only an owned attempt ID; the server calculates and persists exactly the next hint level. |
-| Training   | `training.list`, `create`, `detail`, `updateItem`            | Session ownership is validated before item state changes.                                                     |
-| Progress   | `analytics.summary`                                          | Returns a selected period, calculation version, deterministic metrics and explicit evidence reasons.          |
-| Settings   | `settings.get`, `update`, `setCodeforcesHandle`              | Preferences and linked handle are private and user-scoped.                                                    |
-| Codeforces | `codeforces.syncCatalogue`, `syncSubmissions` | Uses the official API from the server, records sync status, and enforces a one-minute scope cooldown. |
-| Submission history | `submissions.list` | Returns only the authenticated user's imported public verdicts, supports verdict filtering, and joins canonical problem metadata when available. |
+| Module             | Core procedures                                              | Server-enforced guarantee                                                                                                                        |
+| ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dashboard          | `olimp.dashboard`                                            | Returns only the authenticated user's attempts and activity.                                                                                     |
+| Catalogue          | `olimp.catalogue.list`, `detail`                             | Exposes source metadata and external links; no mirrored statement content is required.                                                           |
+| Workspace          | `start`, `setAttemptState`, `setStatus`, `notes`, `saveNote` | Attempts and notes are owned by the current user.                                                                                                |
+| Hints              | `workspace.nextHint`                                         | The client supplies only an owned attempt ID; the server calculates and persists exactly the next hint level.                                    |
+| Training           | `training.list`, `create`, `detail`, `updateItem`            | Session ownership is validated before item state changes.                                                                                        |
+| Progress           | `analytics.summary`                                          | Returns a selected period, calculation version, deterministic metrics and explicit evidence reasons.                                             |
+| Settings           | `settings.get`, `update`, `setCodeforcesHandle`              | Preferences and linked handle are private and user-scoped.                                                                                       |
+| Codeforces         | `codeforces.syncCatalogue`, `syncSubmissions`                | Uses the official API from the server, records sync status, and enforces a one-minute scope cooldown.                                            |
+| Submission history | `submissions.list`                                           | Returns only the authenticated user's imported public verdicts, supports verdict filtering, and joins canonical problem metadata when available. |
+
+External-source traffic crosses a dedicated adapter boundary. `ProblemSourceAdapter` produces normalized source-neutral problem and submission records plus a typed source outcome; the application router persists successful results and records failed source runs without treating a provider error as an empty dataset.
 
 The public `GET /api/healthz` endpoint reports process liveness. `GET /api/readyz` additionally executes a bounded database query and returns `503` when the application cannot use its persistence layer. Health responses do not disclose account, configuration or source data.
 

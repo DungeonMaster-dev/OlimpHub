@@ -34,6 +34,7 @@ import {
   normalizeCatalogueInput,
   shouldWriteAttemptTransition,
 } from "../domain/workflows";
+import { codeforcesAdapter } from "../sources/codeforces";
 
 const statusSchema = z.enum([
   "not_started",
@@ -62,13 +63,6 @@ async function requireDb() {
       message: "Database is temporarily unavailable.",
     });
   return db;
-}
-
-function codeforcesKey(
-  contestId: number | undefined,
-  index: string | undefined
-) {
-  return contestId && index ? `${contestId}-${index}` : null;
 }
 
 async function writeActivity(input: {
@@ -233,66 +227,6 @@ async function ensureSettings(userId: number) {
       .where(eq(userSettings.userId, userId))
       .limit(1)
   )[0]!;
-}
-
-type CodeforcesProblem = {
-  contestId?: number;
-  index?: string;
-  name?: string;
-  rating?: number;
-  tags?: string[];
-};
-
-type CodeforcesSubmission = {
-  id?: number;
-  verdict?: string;
-  programmingLanguage?: string;
-  creationTimeSeconds?: number;
-  problem?: CodeforcesProblem;
-};
-
-export async function fetchCodeforces<T>(
-  method: string,
-  params: Record<string, string> = {}
-) {
-  const url = new URL(`https://codeforces.com/api/${method}`);
-  Object.entries(params).forEach(([key, value]) =>
-    url.searchParams.set(key, value)
-  );
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12_000);
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok)
-      throw new TRPCError({
-        code: "BAD_GATEWAY",
-        message: "Codeforces is temporarily unavailable.",
-      });
-    const payload = (await response.json()) as {
-      status?: string;
-      result?: T;
-      comment?: string;
-    };
-    if (payload.status !== "OK" || payload.result === undefined) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: payload.comment ?? "Codeforces rejected the request.",
-      });
-    }
-    return payload.result;
-  } catch (error) {
-    if (error instanceof TRPCError) throw error;
-    throw new TRPCError({
-      code: "BAD_GATEWAY",
-      message: "Codeforces is temporarily unavailable.",
-      cause: error,
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 async function beginCodeforcesSync(scopeKey: string) {
@@ -1177,31 +1111,22 @@ export const olimpRouter = router({
       const scopeKey = "catalogue";
       const db = await beginCodeforcesSync(scopeKey);
       try {
-        const result = await fetchCodeforces<{ problems: CodeforcesProblem[] }>(
-          "problemset.problems"
-        );
-        const records = result.problems
-          .map(problem => {
-            const externalKey = codeforcesKey(problem.contestId, problem.index);
-            return externalKey &&
-              problem.name &&
-              problem.contestId &&
-              problem.index
-              ? {
-                  sourceId: "codeforces",
-                  externalKey,
-                  title: problem.name,
-                  sourceUrl: `https://codeforces.com/problemset/problem/${problem.contestId}/${problem.index}`,
-                  difficulty: problem.rating ?? null,
-                  tags: problem.tags ?? [],
-                  accessMode: "external_link" as const,
-                  sourceUpdatedAt: null,
-                }
-              : null;
-          })
-          .filter(
-            (record): record is NonNullable<typeof record> => record !== null
-          );
+        const snapshot = await codeforcesAdapter.fetchProblemSnapshot();
+        if (snapshot.status !== "success")
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message: snapshot.message,
+          });
+        const records = snapshot.data.map(problem => ({
+          sourceId: codeforcesAdapter.sourceId,
+          externalKey: problem.externalKey,
+          title: problem.title,
+          sourceUrl: problem.sourceUrl,
+          difficulty: problem.difficulty,
+          tags: problem.tags,
+          accessMode: "external_link" as const,
+          sourceUpdatedAt: null,
+        }));
         for (let offset = 0; offset < records.length; offset += 400) {
           const batch = records.slice(offset, offset + 400);
           await db
@@ -1251,18 +1176,14 @@ export const olimpRouter = router({
             message:
               "Link a Codeforces handle before synchronizing public verdicts.",
           });
-        const submissions = await fetchCodeforces<CodeforcesSubmission[]>(
-          "user.status",
-          { handle: link.handle, from: "1", count: "1000" }
-        );
-        const keys = submissions
-          .map(submission =>
-            codeforcesKey(
-              submission.problem?.contestId,
-              submission.problem?.index
-            )
-          )
-          .filter((key): key is string => Boolean(key));
+        const page = await codeforcesAdapter.fetchSubmissionsPage({
+          handle: link.handle,
+          from: 1,
+          count: 1000,
+        });
+        if (page.status !== "success")
+          throw new TRPCError({ code: "BAD_GATEWAY", message: page.message });
+        const keys = page.data.map(submission => submission.externalProblemKey);
         const knownProblems = keys.length
           ? await db
               .select()
@@ -1277,26 +1198,16 @@ export const olimpRouter = router({
         const problemByKey = new Map(
           knownProblems.map(problem => [problem.externalKey, problem.id])
         );
-        const records = submissions.flatMap(submission => {
-          const externalKey = codeforcesKey(
-            submission.problem?.contestId,
-            submission.problem?.index
-          );
-          if (!submission.id || !externalKey || !submission.creationTimeSeconds)
-            return [];
-          return [
-            {
-              userId: ctx.user.id,
-              sourceId: "codeforces",
-              externalSubmissionId: String(submission.id),
-              problemId: problemByKey.get(externalKey) ?? null,
-              externalProblemKey: externalKey,
-              verdict: submission.verdict ?? "UNKNOWN",
-              language: submission.programmingLanguage ?? null,
-              submittedAt: new Date(submission.creationTimeSeconds * 1000),
-            },
-          ];
-        });
+        const records = page.data.map(submission => ({
+          userId: ctx.user.id,
+          sourceId: codeforcesAdapter.sourceId,
+          externalSubmissionId: submission.externalSubmissionId,
+          problemId: problemByKey.get(submission.externalProblemKey) ?? null,
+          externalProblemKey: submission.externalProblemKey,
+          verdict: submission.verdict,
+          language: submission.language,
+          submittedAt: submission.submittedAt,
+        }));
         for (let offset = 0; offset < records.length; offset += 400) {
           await db
             .insert(externalSubmissions)

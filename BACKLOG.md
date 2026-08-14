@@ -71,7 +71,7 @@
 
 # Phase 3 — Problem Data Platform
 
-- [ ] P1-301 Implement source adapter interface.
+- [x] P1-301 Implement source adapter interface. `ProblemSourceAdapter` and the live `CodeforcesAdapter` provide normalized snapshot/submission operations with typed source outcomes; contract tests pass.
 - [ ] P1-302 Implement Codeforces adapter.
 - [ ] P1-303 Implement Codeforces incremental synchronization.
 - [ ] P1-304 Implement deduplication and canonicalization.

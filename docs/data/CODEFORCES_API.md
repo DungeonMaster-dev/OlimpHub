@@ -75,7 +75,7 @@ Codeforces API — пригодный первый источник **публи
 
 ### Минимальный контракт адаптера
 
-Будущая реализация P1-301 должна предоставить операции `fetchProblemSnapshot`, `fetchContests`, `lookupPublicHandle`, `fetchRatingHistory` и `fetchSubmissionsPage`. Каждая операция возвращает типизированный результат `success | retryableFailure | permanentFailure`, сырые метаданные ответа для аудита без секретов и точное время наблюдения. Адаптер не имеет доступа к личному прогрессу пользователя и не знает внутреннюю схему рекомендаций.
+P1-301 реализует базовый `ProblemSourceAdapter` в `server/sources/types.ts` и `CodeforcesAdapter` в `server/sources/codeforces.ts`. В текущем контракте доступны `fetchProblemSnapshot` и `fetchSubmissionsPage`; обе операции возвращают типизированный результат `success | retryable_failure | permanent_failure` с точным временем наблюдения. Router использует нормализованные данные адаптера, а не собственный парсер Codeforces. Операции контестов, публичного профиля и рейтинга остаются отдельными последующими расширениями интерфейса.
 
 ## Безопасность и приватность
 
