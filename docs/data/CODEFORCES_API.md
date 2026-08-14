@@ -79,6 +79,8 @@ P1-305 добавляет единый in-process coordinator Codeforces. Он �
 
 P1-311 добавляет сквозные ingestion scenarios без обращения к live API: тест проходит через Codeforces adapter, request coordinator и multi-page cursor collector. Он подтверждает корректные offsets следующей страницы, остановку на durable cursor, отсутствие исходного кода в нормализованной отправке и сохранение retryable provider failure вместо подмены его пустым результатом. Дополнительно одновременные идентичные ingestion-запуски объединяются в одни provider calls, следующая cursor page проходит через минимальный интервал coordinator, а следующий запуск после ошибки выполняет новый запрос вместо чтения failure из кэша.
 
+P1-401 валидирует declared public handle перед сохранением через `user.info`. Адаптер использует каноническое написание имени, сохраняет его нормализованный ключ и не принимает несуществующий/неподтверждённый provider profile как привязку. Такой результат означает только существование публичного профиля: без отдельного подписанного или challenge flow OlimpHub не утверждает, что пользователь владеет Codeforces-аккаунтом.
+
 ### Минимальный контракт адаптера
 
 P1-301 реализует базовый `ProblemSourceAdapter` в `server/sources/types.ts` и `CodeforcesAdapter` в `server/sources/codeforces.ts`. В текущем контракте доступны `fetchProblemSnapshot` и `fetchSubmissionsPage`; обе операции возвращают типизированный результат `success | retryable_failure | permanent_failure` с точным временем наблюдения. Router использует нормализованные данные адаптера, а не собственный парсер Codeforces. Операции контестов, публичного профиля и рейтинга остаются отдельными последующими расширениями интерфейса.

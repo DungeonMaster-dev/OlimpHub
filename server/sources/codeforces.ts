@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type {
   ProblemSourceAdapter,
   SourceProblem,
+  SourcePublicProfile,
   SourceResult,
   SourceSubmissionPage,
 } from "./types";
@@ -14,6 +15,7 @@ const codeforcesRequestCoordinator = new SourceRequestCoordinator({
   minIntervalMs: 2200,
 });
 const catalogueCacheTtlMs = 5 * 60 * 1000;
+const publicProfileCacheTtlMs = 60 * 1000;
 
 export type CodeforcesProblem = {
   contestId?: number;
@@ -29,6 +31,7 @@ export type CodeforcesSubmission = {
   creationTimeSeconds?: number;
   problem?: CodeforcesProblem;
 };
+export type CodeforcesUser = { handle?: string };
 
 function codeforcesKey(
   contestId: number | undefined,
@@ -186,6 +189,37 @@ export class CodeforcesAdapter implements ProblemSourceAdapter {
         status: "success",
         observedAt,
         data: { items, isExhausted: submissions.length < input.count },
+      };
+    } catch (error) {
+      return classifyFailure(error, observedAt);
+    }
+  }
+
+  async fetchPublicProfile(input: {
+    handle: string;
+  }): Promise<SourceResult<SourcePublicProfile>> {
+    const observedAt = new Date();
+    try {
+      const users = await this.request<CodeforcesUser[]>(
+        "user.info",
+        { handles: input.handle },
+        publicProfileCacheTtlMs
+      );
+      const user = users[0];
+      if (!user?.handle) {
+        return {
+          status: "permanent_failure",
+          observedAt,
+          message: "Codeforces did not return a public handle.",
+        };
+      }
+      return {
+        status: "success",
+        observedAt,
+        data: {
+          displayName: user.handle,
+          externalUserKey: user.handle.toLowerCase(),
+        },
       };
     } catch (error) {
       return classifyFailure(error, observedAt);

@@ -25,6 +25,11 @@ export type SourceSubmissionPage = {
   isExhausted: boolean;
 };
 
+export type SourcePublicProfile = {
+  externalUserKey: string;
+  displayName: string;
+};
+
 export interface ProblemSourceAdapter {
   readonly sourceId: string;
   fetchProblemSnapshot(): Promise<SourceResult<SourceProblem[]>>;
@@ -33,4 +38,7 @@ export interface ProblemSourceAdapter {
     from: number;
     count: number;
   }): Promise<SourceResult<SourceSubmissionPage>>;
+  fetchPublicProfile(input: {
+    handle: string;
+  }): Promise<SourceResult<SourcePublicProfile>>;
 }

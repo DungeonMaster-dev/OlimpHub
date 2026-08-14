@@ -83,13 +83,20 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
             className="primary-button mt-4"
           >
             <Save className="h-4 w-4" />
-            Save handle
+            {setCf.isPending ? "Checking Codeforces…" : "Verify & link handle"}
           </button>
+          {setCf.error && (
+            <p className="mt-3 text-sm text-rose-200">{setCf.error.message}</p>
+          )}
           {initial.codeforces && (
             <div className="mt-5 rounded-xl border border-white/[.06] bg-white/[.02] p-4 text-sm text-slate-400">
               <p>
                 {initial.codeforces.handle} ·{" "}
                 {initial.codeforces.verificationStatus.replaceAll("_", " ")}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                The public profile exists on Codeforces. This does not prove
+                ownership of that external account.
               </p>
               <button
                 onClick={() => sync.mutate()}

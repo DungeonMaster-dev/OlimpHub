@@ -75,6 +75,22 @@ describe("Codeforces adapter", () => {
     });
   });
 
+  it("confirms a public handle using Codeforces canonical capitalization", async () => {
+    const adapter = adapterWith({
+      ok: true,
+      json: async () => ({
+        status: "OK",
+        result: [{ handle: "ToUrIsT" }],
+      }),
+    });
+    await expect(
+      adapter.fetchPublicProfile({ handle: "tourist" })
+    ).resolves.toMatchObject({
+      status: "success",
+      data: { displayName: "ToUrIsT", externalUserKey: "tourist" },
+    });
+  });
+
   it("returns a retryable source outcome for provider failures", async () => {
     const adapter = adapterWith({ ok: false });
     await expect(adapter.fetchProblemSnapshot()).resolves.toMatchObject({

@@ -39,3 +39,6 @@
 - [x] Implement P1-311 ingestion integration scenarios across Codeforces adapter, request coordination, pagination, failure propagation, and cursor-safe collection.
 - [x] Extend P1-311 with end-to-end request-coordination assertions inside adapter-to-collector ingestion flow.
 - [x] Prove P1-311 cache/rate-limit behavior does not mask provider failures or skip cursor-safe pagination.
+- [x] Complete P1-401 by validating a declared public Codeforces handle against the official API and showing clear linking outcomes in Settings.
+- [x] Add P1-401 mutation-path regressions for successful persistence, invalid handle, duplicate handle, and temporary Codeforces failure outcomes.
+- [x] Re-run and record final P1-401 lint and format checks after mutation-path coverage.

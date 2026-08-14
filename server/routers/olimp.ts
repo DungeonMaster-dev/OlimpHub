@@ -26,7 +26,6 @@ import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
   buildAnalyticsEvidence,
   nextPermittedHintLevel,
-  normalizeCodeforcesHandle,
 } from "../domain/learning";
 import { createActivityEventId } from "../domain/idempotency";
 import {
@@ -1177,23 +1176,59 @@ export const olimpRouter = router({
       )
       .mutation(async ({ ctx, input }) => {
         const db = await requireDb();
-        const normalizedHandle = normalizeCodeforcesHandle(input.handle);
+        const profile = await codeforcesAdapter.fetchPublicProfile({
+          handle: input.handle,
+        });
+        if (profile.status !== "success") {
+          throw new TRPCError({
+            code:
+              profile.status === "permanent_failure"
+                ? "BAD_REQUEST"
+                : "BAD_GATEWAY",
+            message:
+              profile.status === "permanent_failure"
+                ? "That Codeforces handle could not be confirmed."
+                : "Codeforces is temporarily unavailable. Try linking your handle again shortly.",
+          });
+        }
+        const normalizedHandle = profile.data.externalUserKey;
+        const claimedByAnotherUser = (
+          await db
+            .select({ userId: codeforcesLinks.userId })
+            .from(codeforcesLinks)
+            .where(eq(codeforcesLinks.normalizedHandle, normalizedHandle))
+            .limit(1)
+        )[0];
+        if (
+          claimedByAnotherUser &&
+          claimedByAnotherUser.userId !== ctx.user.id
+        ) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "This public Codeforces handle is already linked to another workspace.",
+          });
+        }
         await db
           .insert(codeforcesLinks)
           .values({
             userId: ctx.user.id,
-            handle: input.handle,
+            handle: profile.data.displayName,
             normalizedHandle,
           })
           .onDuplicateKeyUpdate({
             set: {
-              handle: input.handle,
+              handle: profile.data.displayName,
               normalizedHandle,
               verificationStatus: "declared_public",
               syncConsent: "enabled",
             },
           });
-        return { success: true };
+        return {
+          success: true,
+          handle: profile.data.displayName,
+          verificationStatus: "declared_public" as const,
+        };
       }),
   }),
 
