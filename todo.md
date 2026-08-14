@@ -16,10 +16,10 @@
 - [x] Build settings for privacy, Codeforces handle linking, and notification opt-in controls.
 - [ ] Add unit and integration tests covering authorization, hint sequencing, analytics evidence, filters, attempt workflow, and Codeforces adapter boundaries.
 - [x] Run formatting, type checking, tests, database verification, responsive visual review, and update documentation and BACKLOG.md.
-- [ ] Commit the completed implementation stage to GitHub.
+- [x] Commit the completed implementation stage to GitHub.
 - [ ] Add retry-safe idempotency receipts for owner-scoped personal mutations and activity events.
 - [x] Add visible source and approved-skill filters to the catalogue UI, wired to existing protected server inputs.
 - [x] Add explicit private problem-status controls in the workspace UI.
 - [x] Seed the approved initial skill graph from the documented taxonomy and render prerequisites; expose real problem-to-skill links as imported mappings arrive.
 - [ ] Add tests for catalogue filtering, attempt lifecycle, training progression, and Codeforces sync cooldown/error boundaries.
-- [ ] Reverify the API documentation, documentation index, backlog updates, and all final quality gates before checkpointing.
+- [x] Reverify the API documentation, documentation index, backlog updates, and all final quality gates before checkpointing.
