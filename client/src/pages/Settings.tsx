@@ -47,6 +47,8 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
     onSuccess: () => utils.olimp.settings.get.invalidate(),
   });
   const sync = trpc.olimp.codeforces.syncSubmissions.useMutation();
+  const syncRatingHistory =
+    trpc.olimp.codeforces.syncRatingHistory.useMutation();
   return (
     <div className="max-w-4xl space-y-7">
       <section>
@@ -110,6 +112,25 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
               {sync.error && (
                 <p className="mt-2 text-xs text-rose-200">
                   {sync.error.message}
+                </p>
+              )}
+              <button
+                onClick={() => syncRatingHistory.mutate()}
+                disabled={syncRatingHistory.isPending}
+                className="mt-3 block text-indigo-200 hover:text-white"
+              >
+                {syncRatingHistory.isPending
+                  ? "Syncing rating history…"
+                  : "Sync rating & contests →"}
+              </button>
+              {syncRatingHistory.isSuccess && (
+                <p className="mt-2 text-xs text-emerald-200">
+                  Rating history synchronized.
+                </p>
+              )}
+              {syncRatingHistory.error && (
+                <p className="mt-2 text-xs text-rose-200">
+                  {syncRatingHistory.error.message}
                 </p>
               )}
             </div>

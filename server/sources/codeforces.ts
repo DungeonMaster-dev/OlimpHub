@@ -3,6 +3,7 @@ import type {
   ProblemSourceAdapter,
   SourceProblem,
   SourcePublicProfile,
+  SourceRatingChange,
   SourceResult,
   SourceSubmissionPage,
 } from "./types";
@@ -32,6 +33,14 @@ export type CodeforcesSubmission = {
   problem?: CodeforcesProblem;
 };
 export type CodeforcesUser = { handle?: string };
+export type CodeforcesRatingChange = {
+  contestId?: number;
+  contestName?: string;
+  rank?: number;
+  oldRating?: number;
+  newRating?: number;
+  ratingUpdateTimeSeconds?: number;
+};
 
 function codeforcesKey(
   contestId: number | undefined,
@@ -220,6 +229,43 @@ export class CodeforcesAdapter implements ProblemSourceAdapter {
           displayName: user.handle,
           externalUserKey: user.handle.toLowerCase(),
         },
+      };
+    } catch (error) {
+      return classifyFailure(error, observedAt);
+    }
+  }
+
+  async fetchRatingHistory(input: {
+    handle: string;
+  }): Promise<SourceResult<SourceRatingChange[]>> {
+    const observedAt = new Date();
+    try {
+      const changes = await this.request<CodeforcesRatingChange[]>(
+        "user.rating",
+        { handle: input.handle }
+      );
+      return {
+        status: "success",
+        observedAt,
+        data: changes.flatMap(change =>
+          change.contestId &&
+          change.contestName &&
+          change.rank !== undefined &&
+          change.oldRating !== undefined &&
+          change.newRating !== undefined &&
+          change.ratingUpdateTimeSeconds
+            ? [
+                {
+                  externalContestId: String(change.contestId),
+                  contestName: change.contestName,
+                  rank: change.rank,
+                  oldRating: change.oldRating,
+                  newRating: change.newRating,
+                  ratedAt: new Date(change.ratingUpdateTimeSeconds * 1000),
+                },
+              ]
+            : []
+        ),
       };
     } catch (error) {
       return classifyFailure(error, observedAt);

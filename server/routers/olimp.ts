@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   activityEvents,
   codeforcesLinks,
+  codeforcesRatingChanges,
   externalSubmissions,
   idempotencyReceipts,
   problemHints,
@@ -1233,6 +1234,79 @@ export const olimpRouter = router({
   }),
 
   codeforces: router({
+    syncRatingHistory: protectedProcedure.mutation(async ({ ctx }) => {
+      const scopeKey = `rating_history:${ctx.user.id}`;
+      const sync = await beginCodeforcesSync(scopeKey);
+      const { db } = sync;
+      try {
+        const link = (
+          await db
+            .select()
+            .from(codeforcesLinks)
+            .where(
+              and(
+                eq(codeforcesLinks.userId, ctx.user.id),
+                eq(codeforcesLinks.syncConsent, "enabled")
+              )
+            )
+            .limit(1)
+        )[0];
+        if (!link) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "Link a Codeforces handle before synchronizing rating history.",
+          });
+        }
+        const ratingHistory = await codeforcesAdapter.fetchRatingHistory({
+          handle: link.handle,
+        });
+        if (ratingHistory.status !== "success") {
+          throw new TRPCError({
+            code: "BAD_GATEWAY",
+            message: "Codeforces rating history is temporarily unavailable.",
+          });
+        }
+        const records = ratingHistory.data.map(change => ({
+          userId: ctx.user.id,
+          codeforcesLinkId: link.id,
+          contestId: Number.parseInt(change.externalContestId, 10),
+          contestName: change.contestName,
+          rank: change.rank,
+          oldRating: change.oldRating,
+          newRating: change.newRating,
+          ratedAt: change.ratedAt,
+        }));
+        for (let offset = 0; offset < records.length; offset += 400) {
+          await db
+            .insert(codeforcesRatingChanges)
+            .values(records.slice(offset, offset + 400))
+            .onDuplicateKeyUpdate({
+              set: {
+                contestName: sql`VALUES(contestName)`,
+                rank: sql`VALUES(rank)`,
+                oldRating: sql`VALUES(oldRating)`,
+                newRating: sql`VALUES(newRating)`,
+                observedAt: new Date(),
+              },
+            });
+        }
+        await db
+          .update(codeforcesLinks)
+          .set({ lastSyncedAt: new Date() })
+          .where(eq(codeforcesLinks.id, link.id));
+        await writeActivity({
+          userId: ctx.user.id,
+          eventType: "codeforces_rating_history_synced",
+          metadata: { importedCount: records.length },
+        });
+        await finishCodeforcesSync(db, scopeKey);
+        return { importedCount: records.length, handle: link.handle };
+      } catch (error) {
+        await finishCodeforcesSync(db, scopeKey, error);
+        throw error;
+      }
+    }),
     syncCatalogue: protectedProcedure.mutation(async ({ ctx }) => {
       const scopeKey = "catalogue";
       const sync = await beginCodeforcesSync(scopeKey);

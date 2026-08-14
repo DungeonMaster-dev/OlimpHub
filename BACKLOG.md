@@ -86,7 +86,7 @@
 # Phase 4 — User & Codeforces Profile
 
 - [x] P1-401 Implement Codeforces handle linking. Settings validates the declared public handle through the official `user.info` method, stores Codeforces canonical capitalization only on success, prevents cross-workspace duplicate links, communicates validation failures, and explicitly does not claim external-account ownership. Router regressions cover success, invalid profile, conflict and retryable provider failure paths; final lint has zero errors and formatting passes.
-- [ ] P1-402 Import rating and contest history.
+- [x] P1-402 Import rating and contest history. The official `user.rating` adapter normalizes public contest-rating facts; a managed migration persists them idempotently by user, contest and update time; protected sync records activity and Settings exposes progress/error feedback. Repeated-upsert regression passes; final lint has zero errors and formatting passes.
 - [ ] P1-403 Import submissions and verdicts.
 - [ ] P1-404 Map external problems to canonical problems.
 - [ ] P1-405 Implement background profile synchronization.

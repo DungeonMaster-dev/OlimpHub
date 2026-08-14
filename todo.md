@@ -42,3 +42,6 @@
 - [x] Complete P1-401 by validating a declared public Codeforces handle against the official API and showing clear linking outcomes in Settings.
 - [x] Add P1-401 mutation-path regressions for successful persistence, invalid handle, duplicate handle, and temporary Codeforces failure outcomes.
 - [x] Re-run and record final P1-401 lint and format checks after mutation-path coverage.
+- [x] Implement P1-402 idempotent import of public Codeforces rating and contest history with durable persistence and user-visible sync feedback.
+- [x] Add P1-402 repeated-sync upsert regression proving one contest-rating fact remains one persisted record.
+- [x] Run and record final P1-402 tests, types, lint and format checks after the idempotency regression.

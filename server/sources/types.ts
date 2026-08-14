@@ -30,6 +30,15 @@ export type SourcePublicProfile = {
   displayName: string;
 };
 
+export type SourceRatingChange = {
+  externalContestId: string;
+  contestName: string;
+  rank: number;
+  oldRating: number;
+  newRating: number;
+  ratedAt: Date;
+};
+
 export interface ProblemSourceAdapter {
   readonly sourceId: string;
   fetchProblemSnapshot(): Promise<SourceResult<SourceProblem[]>>;
@@ -41,4 +50,7 @@ export interface ProblemSourceAdapter {
   fetchPublicProfile(input: {
     handle: string;
   }): Promise<SourceResult<SourcePublicProfile>>;
+  fetchRatingHistory(input: {
+    handle: string;
+  }): Promise<SourceResult<SourceRatingChange[]>>;
 }

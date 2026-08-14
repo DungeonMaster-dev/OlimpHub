@@ -2,6 +2,7 @@ import {
   index,
   int,
   json,
+  foreignKey,
   mysqlEnum,
   mysqlTable,
   text,
@@ -519,6 +520,41 @@ export const codeforcesLinks = mysqlTable(
   table => [
     uniqueIndex("codeforces_links_user_unique").on(table.userId),
     uniqueIndex("codeforces_links_handle_unique").on(table.normalizedHandle),
+  ]
+);
+
+export const codeforcesRatingChanges = mysqlTable(
+  "codeforces_rating_changes",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    codeforcesLinkId: int("codeforcesLinkId").notNull(),
+    contestId: int("contestId").notNull(),
+    contestName: varchar("contestName", { length: 320 }).notNull(),
+    rank: int("rank").notNull(),
+    oldRating: int("oldRating").notNull(),
+    newRating: int("newRating").notNull(),
+    ratedAt: timestamp("ratedAt").notNull(),
+    observedAt: timestamp("observedAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("codeforces_rating_user_contest_time_unique").on(
+      table.userId,
+      table.contestId,
+      table.ratedAt
+    ),
+    index("codeforces_rating_user_rated_idx").on(table.userId, table.ratedAt),
+    index("codeforces_rating_link_idx").on(table.codeforcesLinkId),
+    foreignKey({
+      name: "cf_rating_user_fk",
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "cf_rating_link_fk",
+      columns: [table.codeforcesLinkId],
+      foreignColumns: [codeforcesLinks.id],
+    }).onDelete("cascade"),
   ]
 );
 

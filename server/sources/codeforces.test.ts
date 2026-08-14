@@ -91,6 +91,39 @@ describe("Codeforces adapter", () => {
     });
   });
 
+  it("normalizes public rating changes into stable contest facts", async () => {
+    const adapter = adapterWith({
+      ok: true,
+      json: async () => ({
+        status: "OK",
+        result: [
+          {
+            contestId: 1,
+            contestName: "Codeforces Beta Round",
+            rank: 42,
+            oldRating: 1200,
+            newRating: 1337,
+            ratingUpdateTimeSeconds: 100,
+          },
+        ],
+      }),
+    });
+    await expect(
+      adapter.fetchRatingHistory({ handle: "tourist" })
+    ).resolves.toMatchObject({
+      status: "success",
+      data: [
+        {
+          externalContestId: "1",
+          contestName: "Codeforces Beta Round",
+          rank: 42,
+          oldRating: 1200,
+          newRating: 1337,
+        },
+      ],
+    });
+  });
+
   it("returns a retryable source outcome for provider failures", async () => {
     const adapter = adapterWith({ ok: false });
     await expect(adapter.fetchProblemSnapshot()).resolves.toMatchObject({
