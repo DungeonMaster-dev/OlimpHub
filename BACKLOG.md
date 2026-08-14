@@ -81,7 +81,7 @@
 - [ ] P1-308 Investigate and implement Kattis adapter if appropriate.
 - [ ] P1-309 Design olympiad archive import pipeline.
 - [x] P1-310 Add source health/monitoring. An admin-only tRPC projection aggregates durable source sync states into healthy, running, rate-limited, degraded, attention and unknown conditions without exposing raw provider errors; domain and authorization tests pass.
-- [ ] P1-311 Add ingestion integration tests.
+- [x] P1-311 Add ingestion integration tests. Adapter-to-coordinator-to-cursor-collector scenarios verify multi-page offsets, durable cursor stop, source-code exclusion, retryable failure propagation, in-flight coalescing, 2.2-second page pacing and retry-after-failure behavior without depending on the live provider; 42 tests pass.
 
 # Phase 4 — User & Codeforces Profile
 
