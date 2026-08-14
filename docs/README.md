@@ -5,6 +5,7 @@ This directory contains the product and engineering documentation that should st
 ## Current documentation
 
 - [product/PLATFORM_UX_RESEARCH.md](product/PLATFORM_UX_RESEARCH.md) — observed UX patterns from competitive-programming platforms and OlimpHub acceptance criteria.
+- [data/CODEFORCES_API.md](data/CODEFORCES_API.md) — official Codeforces API contract, limitations and adapter requirements.
 
 ## Planned documentation
 
