@@ -39,16 +39,18 @@
 
 # Phase 1 — Engineering Foundation
 
-- [ ] P0-101 Choose and document production-ready stack.
-- [ ] P0-102 Create frontend/backend project structure.
-- [ ] P0-103 Configure database and migrations.
-- [ ] P0-104 Configure environment and secrets management.
-- [ ] P0-105 Add structured logging and error handling.
-- [ ] P0-106 Add linting, formatting and type checking.
-- [ ] P0-107 Add unit/integration test infrastructure.
-- [ ] P0-108 Add Docker development environment.
-- [ ] P0-109 Add CI pipeline.
-- [ ] P0-110 Add health/readiness endpoints.
+- [x] P0-101 Choose and document production-ready stack. See `docs/architecture/STACK.md` (completed 2026-08-14).
+- [x] P0-102 Create frontend/backend project structure. React, Express, tRPC and domain router boundaries are implemented (completed 2026-08-14).
+- [x] P0-103 Configure database and migrations. Canonical OlimpHub schema, reviewed SQL migration and database journal are synchronized (completed 2026-08-14).
+- [x] P0-104 Configure environment and secrets management. See `docs/architecture/CONFIGURATION.md` (completed 2026-08-14).
+- [x] P0-105 Add structured logging and error handling. Request/tRPC error logs redact sensitive fields; unhandled errors return a generic response (completed 2026-08-14).
+- [x] P0-106 Add linting, formatting and type checking. ESLint, Prettier and TypeScript commands are configured (completed 2026-08-14).
+- [x] P0-107 Add unit/integration test infrastructure. Vitest covers auth boundaries and deterministic learning rules; test command is part of CI (completed 2026-08-14).
+- [x] P0-108 Add Docker development environment. A Node 22 dev-container supports reproducible local container workflows without replacing managed production builds (completed 2026-08-14).
+- [x] P0-109 Add CI pipeline. GitHub Actions verifies install, lint, format, tests, types and production build (completed 2026-08-14).
+- [x] P0-110 Add health/readiness endpoints. `GET /api/healthz` and `GET /api/readyz` are verified against the running service (completed 2026-08-14).
+- [ ] P0-111 Add durable idempotency receipts for retryable personal mutations and activity events.
+- [ ] P0-112 Add behavioural tests for catalogue filters, attempt lifecycle, training progression and Codeforces sync cooldown/error paths.
 
 # Phase 2 — Core UI
 
@@ -276,6 +278,7 @@ When instructed to work autonomously:
 9. Continue to the next task.
 
 Do not stop merely because one feature is complete. Stop only when:
+
 - a real external dependency/credential is required;
 - a product decision cannot be inferred safely;
 - continuing would create a meaningful security/data-loss risk;

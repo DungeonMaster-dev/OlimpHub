@@ -53,6 +53,7 @@ After completing one task, continue with the next dependency-ready high-value ta
 ## Data Quality
 
 Problem ingestion must tolerate:
+
 - duplicate imports;
 - changed source metadata;
 - API outages;

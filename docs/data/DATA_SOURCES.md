@@ -11,14 +11,14 @@
 
 ## Source registry
 
-| `sourceId` | Стартовый режим | Разрешённый MVP data scope | Запрещённый scope без отдельного разрешения |
-|---|---|---|---|
-| `codeforces` | `api_metadata` | Problem metadata, tags, contest/problem ref, публичные user submissions через документированные методы и link. | Локальное зеркало statement/editorial/test data, чужой source code. |
-| `atcoder` | `link_only_pending_rights` | Внешняя ссылка и ручная curator запись после правовой проверки. | Автоматический scraper/importer/mirror. |
-| `cses` | `link_only_pending_rights` | Внешняя ссылка и одобренная metadata policy. | Массовое копирование задач/тестов/editorials. |
-| `kattis` | `link_only_pending_rights` | Внешняя ссылка после source review. | Автоматизированный импорт без письменного/совместимого разрешения. |
-| `olympiad_archive` | `case_by_case` | Только запись с конкретным rightsholder/licence evidence. | Предположение, что олимпиадный архив свободен для зеркалирования. |
-| `manual_curated` | `curator` | Собственные/явно лицензированные задачи с recorded licence. | Публикация без provenance/review. |
+| `sourceId`         | Стартовый режим            | Разрешённый MVP data scope                                                                                     | Запрещённый scope без отдельного разрешения                         |
+| ------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `codeforces`       | `api_metadata`             | Problem metadata, tags, contest/problem ref, публичные user submissions через документированные методы и link. | Локальное зеркало statement/editorial/test data, чужой source code. |
+| `atcoder`          | `link_only_pending_rights` | Внешняя ссылка и ручная curator запись после правовой проверки.                                                | Автоматический scraper/importer/mirror.                             |
+| `cses`             | `link_only_pending_rights` | Внешняя ссылка и одобренная metadata policy.                                                                   | Массовое копирование задач/тестов/editorials.                       |
+| `kattis`           | `link_only_pending_rights` | Внешняя ссылка после source review.                                                                            | Автоматизированный импорт без письменного/совместимого разрешения.  |
+| `olympiad_archive` | `case_by_case`             | Только запись с конкретным rightsholder/licence evidence.                                                      | Предположение, что олимпиадный архив свободен для зеркалирования.   |
+| `manual_curated`   | `curator`                  | Собственные/явно лицензированные задачи с recorded licence.                                                    | Публикация без provenance/review.                                   |
 
 P0-003a остаётся блокером для любого non-Codeforces automated importer или local content mirror. Каждый новый источник добавляет source profile, права, data mapping, failure strategy, тестовые fixtures и владельца.
 
@@ -44,13 +44,13 @@ Codeforces — единственный запланированный авто�
 
 ## Provenance и content access
 
-| Поле | Назначение |
-|---|---|
-| `sourceId`, `externalKey`, `sourceUrl` | Стабильная внешняя идентичность и трассировка. |
-| `adapterVersion`, `fetchedAt`, `rawPayloadHash` | Воспроизводимость import/diagnostic без обязательного хранения всего payload. |
-| `licenceStatus`, `accessMode`, `rightsEvidenceRef` | Явное правило, почему и как можно показывать данные. |
-| `normalisationVersion`, `reviewStatus`, `reviewedBy` | Отличает факт источника от утверждённой внутренней записи. |
-| `supersedesRefId`/`validFrom` | Позволяет сохранить историю изменения внешней записи. |
+| Поле                                                 | Назначение                                                                    |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `sourceId`, `externalKey`, `sourceUrl`               | Стабильная внешняя идентичность и трассировка.                                |
+| `adapterVersion`, `fetchedAt`, `rawPayloadHash`      | Воспроизводимость import/diagnostic без обязательного хранения всего payload. |
+| `licenceStatus`, `accessMode`, `rightsEvidenceRef`   | Явное правило, почему и как можно показывать данные.                          |
+| `normalisationVersion`, `reviewStatus`, `reviewedBy` | Отличает факт источника от утверждённой внутренней записи.                    |
+| `supersedesRefId`/`validFrom`                        | Позволяет сохранить историю изменения внешней записи.                         |
 
 `accessMode` ограничен `external_link`, `metadata_only`, `licensed_local_content`, `user_private_content`, `restricted`. UI и API фильтруют content по mode до получения DTO. Нельзя полагаться на скрытие кнопки: сервер не возвращает statement/test data для `external_link` и `metadata_only`.
 
@@ -68,16 +68,16 @@ Codeforces — единственный запланированный авто�
 
 ## Качество и тесты
 
-| Проверка | Критерий |
-|---|---|
+| Проверка                 | Критерий                                                                                           |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
 | Adapter contract fixture | Известный payload нормализуется в стабильный candidate; unknown field не меняет значения silently. |
-| Idempotent re-import | Повтор той же страницы не дублирует ref/problem/submission. |
-| Contract drift | Отсутствующее required field даёт `contract_changed`, сохранённый snapshot остаётся читабелен. |
-| Rights gate | `external_link` не возвращает local statement/hidden data через API. |
-| Dedupe | Два источника с похожим title не merge без explicit review evidence. |
-| Rate/failure | 429/timeout применяют retry/circuit policy без busy loop. |
-| Provenance | Каждая опубликованная problem/source ref имеет source URL, время и access mode. |
-| Privacy | External handle/submission не импортируется до explicit link/consent. |
+| Idempotent re-import     | Повтор той же страницы не дублирует ref/problem/submission.                                        |
+| Contract drift           | Отсутствующее required field даёт `contract_changed`, сохранённый snapshot остаётся читабелен.     |
+| Rights gate              | `external_link` не возвращает local statement/hidden data через API.                               |
+| Dedupe                   | Два источника с похожим title не merge без explicit review evidence.                               |
+| Rate/failure             | 429/timeout применяют retry/circuit policy без busy loop.                                          |
+| Provenance               | Каждая опубликованная problem/source ref имеет source URL, время и access mode.                    |
+| Privacy                  | External handle/submission не импортируется до explicit link/consent.                              |
 
 ## Операционные сигналы
 

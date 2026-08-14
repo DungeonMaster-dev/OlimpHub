@@ -36,18 +36,18 @@ flowchart TB
 
 ## Модули и ownership
 
-| Модуль | Владеет | Публичный контракт | Запрещённая зависимость |
-|---|---|---|---|
-| Identity | users, sessions, roles, privacy preferences, account links. | `CurrentIdentity`, account/link commands. | Прямое чтение progress/attempt data. |
-| Catalogue | problems, source refs, content access, tags, imports, curator review. | Поиск approved projections, source-aware problem detail. | Хранение личного status/notes. |
-| Learning Workspace | attempts, notes, personal statuses, activity events. | Scoped attempt/progress commands and read models. | Внешние API и skill calculations. |
-| Skill Map | skills, DAG, mapping policies, approved links. | Версионированный graph/read model. | Перезапись source tags или user evidence. |
-| Training | training session/items, selection policy version. | Start/continue/complete training. | Самостоятельный доступ к чужим личным данным. |
-| Analytics | rebuildable projections, snapshots, evidence explanations. | Read-only metrics/reasons. | Direct UI write or policy-free mastery inference. |
-| Integrations | source adapters, sync state, external submissions/accounts. | Idempotent import jobs and normalized observations. | Пароли/credentials клиента или UI-specific logic. |
-| AI Coach | safe context builder, policy, provider abstraction, response validation. | Structured advice/hint response. | Direct DB access, write tools, authority over progress. |
-| Notifications | preferences, outbox delivery, channel adapters. | Schedule/cancel/track delivery. | Создавать learning facts без domain event. |
-| Execution | job orchestration/result aggregation. | Explicit job lifecycle. | Работа в API process/общей инфраструктуре приложения. |
+| Модуль             | Владеет                                                                  | Публичный контракт                                       | Запрещённая зависимость                                 |
+| ------------------ | ------------------------------------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------- |
+| Identity           | users, sessions, roles, privacy preferences, account links.              | `CurrentIdentity`, account/link commands.                | Прямое чтение progress/attempt data.                    |
+| Catalogue          | problems, source refs, content access, tags, imports, curator review.    | Поиск approved projections, source-aware problem detail. | Хранение личного status/notes.                          |
+| Learning Workspace | attempts, notes, personal statuses, activity events.                     | Scoped attempt/progress commands and read models.        | Внешние API и skill calculations.                       |
+| Skill Map          | skills, DAG, mapping policies, approved links.                           | Версионированный graph/read model.                       | Перезапись source tags или user evidence.               |
+| Training           | training session/items, selection policy version.                        | Start/continue/complete training.                        | Самостоятельный доступ к чужим личным данным.           |
+| Analytics          | rebuildable projections, snapshots, evidence explanations.               | Read-only metrics/reasons.                               | Direct UI write or policy-free mastery inference.       |
+| Integrations       | source adapters, sync state, external submissions/accounts.              | Idempotent import jobs and normalized observations.      | Пароли/credentials клиента или UI-specific logic.       |
+| AI Coach           | safe context builder, policy, provider abstraction, response validation. | Structured advice/hint response.                         | Direct DB access, write tools, authority over progress. |
+| Notifications      | preferences, outbox delivery, channel adapters.                          | Schedule/cancel/track delivery.                          | Создавать learning facts без domain event.              |
+| Execution          | job orchestration/result aggregation.                                    | Explicit job lifecycle.                                  | Работа в API process/общей инфраструктуре приложения.   |
 
 ## Данные и связи
 
@@ -55,13 +55,13 @@ flowchart TB
 
 Изменяющая команда выполняется в транзакции модуля, записывает domain event в `outbox` и возвращает подтверждённый ресурс. Worker публикует событие с идемпотентным consumer key; downstream projections можно пересчитать. Внешняя доставка не является частью синхронной HTTP-транзакции.
 
-| Тип взаимодействия | Пример | Правило |
-|---|---|---|
-| Синхронная команда | Start attempt, update note, link account. | Авторизация, schema validation, idempotency key, atomic local write + outbox. |
-| Синхронное чтение | Catalogue filters, current workspace, dashboard. | Только read-model/DTO; pagination и policy-filter. |
-| Асинхронное событие | Attempt completed → analytics, external sync → progress projection. | At-least-once delivery, idempotent consumer, versioned payload. |
-| Внешний вызов | Codeforces, Telegram, LLM provider. | Adapter, timeout, retry policy, circuit breaker, audit/provenance. |
-| Высокорисковый job | Compile/run user code. | Отдельный control plane и isolated execution boundary. |
+| Тип взаимодействия  | Пример                                                              | Правило                                                                       |
+| ------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Синхронная команда  | Start attempt, update note, link account.                           | Авторизация, schema validation, idempotency key, atomic local write + outbox. |
+| Синхронное чтение   | Catalogue filters, current workspace, dashboard.                    | Только read-model/DTO; pagination и policy-filter.                            |
+| Асинхронное событие | Attempt completed → analytics, external sync → progress projection. | At-least-once delivery, idempotent consumer, versioned payload.               |
+| Внешний вызов       | Codeforces, Telegram, LLM provider.                                 | Adapter, timeout, retry policy, circuit breaker, audit/provenance.            |
+| Высокорисковый job  | Compile/run user code.                                              | Отдельный control plane и isolated execution boundary.                        |
 
 ## API conventions
 
@@ -71,14 +71,14 @@ API — versioned JSON HTTP endpoints для client-facing сценариев; i
 
 ## Надёжность и масштабирование
 
-| Сценарий | Решение |
-|---|---|
+| Сценарий                      | Решение                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Внешний source/API недоступен | Catalogue показывает approved cached snapshot и source health; import retry backoff, no user request blocking. |
-| Worker повторно получил job | Consumer dedupe/idempotency key; no duplicate notification/progress event. |
-| Analytics отстали | UI показывает generatedAt/calculation version; исходные facts сохраняются, projection rebuildable. |
-| Provider AI unavailable | Return explicit degraded response; baseline workspace работает без AI. |
-| Telegram delivery failure | Outbox retry/final status, не блокирует доменное событие. |
-| Execution plane failure | `JUDGE_ERROR` без компрометации API/DB; resources reconciled. |
+| Worker повторно получил job   | Consumer dedupe/idempotency key; no duplicate notification/progress event.                                     |
+| Analytics отстали             | UI показывает generatedAt/calculation version; исходные facts сохраняются, projection rebuildable.             |
+| Provider AI unavailable       | Return explicit degraded response; baseline workspace работает без AI.                                         |
+| Telegram delivery failure     | Outbox retry/final status, не блокирует доменное событие.                                                      |
+| Execution plane failure       | `JUDGE_ERROR` без компрометации API/DB; resources reconciled.                                                  |
 
 Наблюдаемость строится по request/job correlation ID, structured logs с redaction, метрикам latency/error/backlog и tracing across asynchronous boundaries. Бизнес-метрики не заменяют security audit, а audit не содержит raw code/notes/secrets.
 

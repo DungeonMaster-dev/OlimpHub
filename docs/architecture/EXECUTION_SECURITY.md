@@ -16,16 +16,16 @@ Firecracker запускает нагрузки в лёгких microVM с ап�
 
 ## 2. Граница доверия
 
-| Компонент | Уровень доверия | Может содержать секреты | Может запускать пользовательский код |
-|---|---|---:|---:|
-| Веб-клиент | Недоверенный | Нет | Нет |
-| API / модуль Learning Workspace | Доверенный control plane | Только необходимые сервисные секреты | Нет |
-| Очередь заданий | Частично доверенная инфраструктура | Нет в payload | Нет |
-| Execution Orchestrator | Доверенный control plane | Краткоживущий job capability | Нет |
-| MicroVM launcher / worker host | Высокий риск, усиленно защищённый | Минимальный host credential | Только через microVM boundary |
-| Compile microVM | Недоверенный workload | Нет | Да, только compiler/toolchain |
-| Run microVM | Недоверенный workload | Нет | Да, только скомпилированный artefact и тестовый ввод |
-| Хранилище тестов | Доверенное | Тесты могут быть секретными | Нет |
+| Компонент                       | Уровень доверия                    |              Может содержать секреты |                 Может запускать пользовательский код |
+| ------------------------------- | ---------------------------------- | -----------------------------------: | ---------------------------------------------------: |
+| Веб-клиент                      | Недоверенный                       |                                  Нет |                                                  Нет |
+| API / модуль Learning Workspace | Доверенный control plane           | Только необходимые сервисные секреты |                                                  Нет |
+| Очередь заданий                 | Частично доверенная инфраструктура |                        Нет в payload |                                                  Нет |
+| Execution Orchestrator          | Доверенный control plane           |         Краткоживущий job capability |                                                  Нет |
+| MicroVM launcher / worker host  | Высокий риск, усиленно защищённый  |          Минимальный host credential |                        Только через microVM boundary |
+| Compile microVM                 | Недоверенный workload              |                                  Нет |                        Да, только compiler/toolchain |
+| Run microVM                     | Недоверенный workload              |                                  Нет | Да, только скомпилированный artefact и тестовый ввод |
+| Хранилище тестов                | Доверенное                         |          Тесты могут быть секретными |                                                  Нет |
 
 Секретные тесты никогда не попадают в API, браузер, prompt AI Coach, логи, stdout ответ приложения или долговременное хранилище пользователя. Рабочая microVM не получает сетевых учётных данных, cloud instance metadata, Docker socket, host mounts, API tokens, ключи подписи, shared volume или доступ к базе.
 
@@ -56,48 +56,48 @@ Compile и run разделены намеренно: компилятор об�
 
 ## 4. Минимальный контракт Execution
 
-| Объект | Поля | Ограничения |
-|---|---|---|
-| `ExecutionRequest` | `attemptId`, `languageId`, `sourceCode`, `testScope`, `clientRequestId` | `attemptId` проверяется server-side; исходник ограничен размером и не логируется. |
-| `ExecutionJob` | `jobId`, `userId`, `problemId`, `policyVersion`, `limits`, `queuedAt`, `expiresAt` | Публичный API не позволяет подменить `userId`, `problemId` или лимиты. |
-| `LanguageProfile` | `languageId`, `compilerImageDigest`, `compileCommandTemplate`, `runCommandTemplate`, `enabled` | Immutable digest; нет пользовательской командной строки или package install. |
-| `ExecutionLimits` | `wallTimeMs`, `cpuTimeMs`, `memoryBytes`, `pidsMax`, `outputBytes`, `fileBytes`, `sourceBytes`, `compileTimeMs` | Берутся из политики задачи/языка, а не от клиента. |
-| `ExecutionResult` | `verdict`, `phase`, `exitCode?`, `timeMs`, `memoryBytes`, `diagnostics?`, `testSummary` | Не включает скрытый input, expected output, VM path или host metadata. |
-| `ExecutionAudit` | `jobId`, `policyVersion`, `imageDigest`, `isolationBackend`, `outcome`, `cleanupStatus` | Хранит технический audit без кода и тестовых данных. |
+| Объект             | Поля                                                                                                            | Ограничения                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `ExecutionRequest` | `attemptId`, `languageId`, `sourceCode`, `testScope`, `clientRequestId`                                         | `attemptId` проверяется server-side; исходник ограничен размером и не логируется. |
+| `ExecutionJob`     | `jobId`, `userId`, `problemId`, `policyVersion`, `limits`, `queuedAt`, `expiresAt`                              | Публичный API не позволяет подменить `userId`, `problemId` или лимиты.            |
+| `LanguageProfile`  | `languageId`, `compilerImageDigest`, `compileCommandTemplate`, `runCommandTemplate`, `enabled`                  | Immutable digest; нет пользовательской командной строки или package install.      |
+| `ExecutionLimits`  | `wallTimeMs`, `cpuTimeMs`, `memoryBytes`, `pidsMax`, `outputBytes`, `fileBytes`, `sourceBytes`, `compileTimeMs` | Берутся из политики задачи/языка, а не от клиента.                                |
+| `ExecutionResult`  | `verdict`, `phase`, `exitCode?`, `timeMs`, `memoryBytes`, `diagnostics?`, `testSummary`                         | Не включает скрытый input, expected output, VM path или host metadata.            |
+| `ExecutionAudit`   | `jobId`, `policyVersion`, `imageDigest`, `isolationBackend`, `outcome`, `cleanupStatus`                         | Хранит технический audit без кода и тестовых данных.                              |
 
 Идемпотентность обеспечивается `UNIQUE(user_id, client_request_id)` в коротком окне: повтор сетевого запроса возвращает один и тот же job/result, а не запускает программу дважды. Job имеет конечный срок жизни; отменённое или просроченное задание не может быть взято воркером после `expiresAt`.
 
 ## 5. Обязательные слои изоляции
 
-| Слой | Обязательное требование | Почему одного этого слоя недостаточно |
-|---|---|---|
-| Отдельный compute plane | Не размещать runner на API-host или в общем Kubernetes node без доказуемой workload isolation. | Компрометация runner не должна стать компрометацией приложения/БД. |
-| MicroVM | Firecracker/KVM или эквивалентная hardware-virtualized граница на job. | Hypervisor/host остаются частью доверенной базы. |
-| Immutable image | Подписанный/пиннингованный rootfs и compiler image; обновления через проверенный pipeline. | Не ограничивает CPU, сеть или доступ к излишне смонтированным файлам. |
-| UID/GID и capabilities | Непривилегированный пользователь, no-new-privileges, drop all capabilities. | Ошибки в kernel/runtime требуют следующего слоя. |
-| Namespaces / seccomp / LSM | User, mount, pid, net namespaces; минимальный syscall policy; MAC policy. | Универсальный syscall allowlist трудно сделать достаточным для всех языков. |
-| cgroups v2 | Жёсткие CPU/memory/pids/I/O limits с kill on breach. | Не блокирует тайминговые атаки, доступ к сети или файловой системе. |
-| Network | `network=none`; нет DNS, loopback-сервисов, metadata endpoint, egress/ingress. | Не заменяет filesystem и process isolation. |
-| Filesystem | Read-only root, пустой tmpfs с quota, no host bind mounts, no device nodes. | Вредоносный процесс всё ещё можно перегрузить ресурсами без cgroup. |
-| Жизненный цикл | Уничтожение VM/disks/sockets/cgroups после каждого job. | Не защищает от атаки во время выполнения. |
+| Слой                       | Обязательное требование                                                                        | Почему одного этого слоя недостаточно                                       |
+| -------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Отдельный compute plane    | Не размещать runner на API-host или в общем Kubernetes node без доказуемой workload isolation. | Компрометация runner не должна стать компрометацией приложения/БД.          |
+| MicroVM                    | Firecracker/KVM или эквивалентная hardware-virtualized граница на job.                         | Hypervisor/host остаются частью доверенной базы.                            |
+| Immutable image            | Подписанный/пиннингованный rootfs и compiler image; обновления через проверенный pipeline.     | Не ограничивает CPU, сеть или доступ к излишне смонтированным файлам.       |
+| UID/GID и capabilities     | Непривилегированный пользователь, no-new-privileges, drop all capabilities.                    | Ошибки в kernel/runtime требуют следующего слоя.                            |
+| Namespaces / seccomp / LSM | User, mount, pid, net namespaces; минимальный syscall policy; MAC policy.                      | Универсальный syscall allowlist трудно сделать достаточным для всех языков. |
+| cgroups v2                 | Жёсткие CPU/memory/pids/I/O limits с kill on breach.                                           | Не блокирует тайминговые атаки, доступ к сети или файловой системе.         |
+| Network                    | `network=none`; нет DNS, loopback-сервисов, metadata endpoint, egress/ingress.                 | Не заменяет filesystem и process isolation.                                 |
+| Filesystem                 | Read-only root, пустой tmpfs с quota, no host bind mounts, no device nodes.                    | Вредоносный процесс всё ещё можно перегрузить ресурсами без cgroup.         |
+| Жизненный цикл             | Уничтожение VM/disks/sockets/cgroups после каждого job.                                        | Не защищает от атаки во время выполнения.                                   |
 
 Разработка и production не могут использовать `runsc do` как готовую настройку: документация gVisor предупреждает, что convenience-команда даёт read-only доступ ко всей filesystem хоста; реальные конфигурации должны явно ограничивать mounts.[2]
 
 ## 6. Политика ресурсов и вердиктов
 
-| Ресурс/событие | Технический контроль | Вердикт |
-|---|---|---|
-| Ошибка компиляции | Отдельная compile microVM, ограниченный wall/CPU/output. | `COMPILATION_ERROR` |
-| Ненулевой exit code/сигнал | PID 1 wrapper и result collector. | `RUNTIME_ERROR` (если не классифицирован иначе) |
-| CPU лимит | cgroup CPU accounting + watchdog. | `TIME_LIMIT_EXCEEDED` |
-| Wall-clock timeout | Независимый host watchdog, не доверяющий гостевым часам. | `TIME_LIMIT_EXCEEDED` |
-| Memory limit/OOM | cgroup memory.max + OOM event observation. | `MEMORY_LIMIT_EXCEEDED` |
-| Превышение процессов | cgroup `pids.max`; особый предел для compiler/run профилей. | `RUNTIME_ERROR` с внутренним reason `process_limit` |
-| Превышение output | Pipe/read cap, немедленное прекращение процесса. | `OUTPUT_LIMIT_EXCEEDED` |
-| Файловая квота | Tmpfs/project quota; read-only root. | `RUNTIME_ERROR` с внутренним reason `file_limit` |
-| Несовпадение вывода | Streaming comparator без передачи expected output пользователю. | `WRONG_ANSWER` |
-| Успех всех открытых/разрешённых тестов | Aggregator получает только booleans/ограниченные диагностические поля. | `ACCEPTED` |
-| Неисправность sandbox/host | Не интерпретировать как ошибку решения. | `JUDGE_ERROR`; повторить только по безопасной policy. |
+| Ресурс/событие                         | Технический контроль                                                   | Вердикт                                               |
+| -------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------- |
+| Ошибка компиляции                      | Отдельная compile microVM, ограниченный wall/CPU/output.               | `COMPILATION_ERROR`                                   |
+| Ненулевой exit code/сигнал             | PID 1 wrapper и result collector.                                      | `RUNTIME_ERROR` (если не классифицирован иначе)       |
+| CPU лимит                              | cgroup CPU accounting + watchdog.                                      | `TIME_LIMIT_EXCEEDED`                                 |
+| Wall-clock timeout                     | Независимый host watchdog, не доверяющий гостевым часам.               | `TIME_LIMIT_EXCEEDED`                                 |
+| Memory limit/OOM                       | cgroup memory.max + OOM event observation.                             | `MEMORY_LIMIT_EXCEEDED`                               |
+| Превышение процессов                   | cgroup `pids.max`; особый предел для compiler/run профилей.            | `RUNTIME_ERROR` с внутренним reason `process_limit`   |
+| Превышение output                      | Pipe/read cap, немедленное прекращение процесса.                       | `OUTPUT_LIMIT_EXCEEDED`                               |
+| Файловая квота                         | Tmpfs/project quota; read-only root.                                   | `RUNTIME_ERROR` с внутренним reason `file_limit`      |
+| Несовпадение вывода                    | Streaming comparator без передачи expected output пользователю.        | `WRONG_ANSWER`                                        |
+| Успех всех открытых/разрешённых тестов | Aggregator получает только booleans/ограниченные диагностические поля. | `ACCEPTED`                                            |
+| Неисправность sandbox/host             | Не интерпретировать как ошибку решения.                                | `JUDGE_ERROR`; повторить только по безопасной policy. |
 
 Численные лимиты принадлежат `Problem`/`LanguageProfile` и определяются до запуска. Параметры не берутся из user request и не допускают «безлимитный» режим для администратора через публичный API.
 
@@ -115,14 +115,14 @@ Input подаётся через read-only файл или pipe, output чит�
 
 ## 9. Логи, артефакты и приватность
 
-| Данные | Допустимое хранение | Запрет |
-|---|---|---|
-| Исходный код | Только если пользователь явно сохраняет его в workspace; доступ по владельцу. | Попадание в обычные observability-логи, prompt AI, error tracker. |
-| Compile diagnostics | Ограниченный размер, привязка к job, короткая retention policy. | HTML без sanitization, включение host path. |
-| Runtime stdout/stderr | Ограниченный вывод в result по настройке пользователя. | Вывод hidden tests, environment variables или технических секретов. |
-| Бинарник/temporary files | Только ephemeral storage. | Долгосрочная reuse между users/jobs. |
-| Secret tests | Encrypted trusted store + ephemeral read-only injection. | Ответ API, client, model provider, log/trace. |
-| Audit | Метаданные job, image/policy version, verdict, cleanup status. | Код, входные/ожидаемые данные, ключи. |
+| Данные                   | Допустимое хранение                                                           | Запрет                                                              |
+| ------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Исходный код             | Только если пользователь явно сохраняет его в workspace; доступ по владельцу. | Попадание в обычные observability-логи, prompt AI, error tracker.   |
+| Compile diagnostics      | Ограниченный размер, привязка к job, короткая retention policy.               | HTML без sanitization, включение host path.                         |
+| Runtime stdout/stderr    | Ограниченный вывод в result по настройке пользователя.                        | Вывод hidden tests, environment variables или технических секретов. |
+| Бинарник/temporary files | Только ephemeral storage.                                                     | Долгосрочная reuse между users/jobs.                                |
+| Secret tests             | Encrypted trusted store + ephemeral read-only injection.                      | Ответ API, client, model provider, log/trace.                       |
+| Audit                    | Метаданные job, image/policy version, verdict, cleanup status.                | Код, входные/ожидаемые данные, ключи.                               |
 
 ## 10. Операционная защита
 
@@ -134,18 +134,18 @@ Execution hosts выделяются в отдельный account/project/VPC �
 
 P0-501 расширит threat model конкретным deployment environment, однако базовые тесты нельзя откладывать:
 
-| Атака/сбой | Ожидаемый результат |
-|---|---|
-| Fork bomb / process tree | Превышение `pids.max`, убийство cgroup, host остаётся доступен. |
-| Infinite loop / busy spin | Независимый wall-clock watchdog завершает job. |
-| Memory bomb | Срабатывает memory cgroup; соседний job не деградирует. |
-| Disk fill / output flood | Tmpfs/output cap завершает job; нет host disk exhaustion. |
-| Попытка DNS/HTTP/metadata | Нет доступного маршрута/интерфейса; verdict не раскрывает сетевую топологию. |
-| Чтение `/proc`, `/sys`, mount, device | Видны только guest-данные, соответствующие allowlist. |
-| Escape через compiler flags/filename | Все команды строятся из template и строго валидированных аргументов; файл не становится shell code. |
-| Malformed ELF / exploit compiler | Ошибка остаётся в compile microVM; run/control plane не получают доступ. |
-| Утечка hidden test через stderr/time | Дiagnostics не содержат expected output/полный input; timing не публикуется с излишней детализацией. |
-| Worker crash/timeout | Job получает `JUDGE_ERROR`; orphan cleanup подтверждён до retry. |
+| Атака/сбой                            | Ожидаемый результат                                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Fork bomb / process tree              | Превышение `pids.max`, убийство cgroup, host остаётся доступен.                                      |
+| Infinite loop / busy spin             | Независимый wall-clock watchdog завершает job.                                                       |
+| Memory bomb                           | Срабатывает memory cgroup; соседний job не деградирует.                                              |
+| Disk fill / output flood              | Tmpfs/output cap завершает job; нет host disk exhaustion.                                            |
+| Попытка DNS/HTTP/metadata             | Нет доступного маршрута/интерфейса; verdict не раскрывает сетевую топологию.                         |
+| Чтение `/proc`, `/sys`, mount, device | Видны только guest-данные, соответствующие allowlist.                                                |
+| Escape через compiler flags/filename  | Все команды строятся из template и строго валидированных аргументов; файл не становится shell code.  |
+| Malformed ELF / exploit compiler      | Ошибка остаётся в compile microVM; run/control plane не получают доступ.                             |
+| Утечка hidden test через stderr/time  | Дiagnostics не содержат expected output/полный input; timing не публикуется с излишней детализацией. |
+| Worker crash/timeout                  | Job получает `JUDGE_ERROR`; orphan cleanup подтверждён до retry.                                     |
 
 ## 12. Внешняя зависимость и порядок реализации
 

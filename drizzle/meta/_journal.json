@@ -1,5 +1,27 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786737590472,
+      "tag": "0000_numerous_pete_wisdom",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786737931564,
+      "tag": "0001_supreme_winter_soldier",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786739400000,
+      "tag": "0002_seed_initial_skill_graph",
+      "breakpoints": true
+    }
+  ]
 }

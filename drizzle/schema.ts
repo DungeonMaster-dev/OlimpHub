@@ -1,17 +1,17 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  index,
+  int,
+  json,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -22,7 +22,483 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const userSettings = mysqlTable(
+  "user_settings",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    timeZone: varchar("timeZone", { length: 64 }).default("UTC").notNull(),
+    weeklyGoal: int("weeklyGoal").default(4).notNull(),
+    activityTracking: mysqlEnum("activityTracking", ["enabled", "minimal"])
+      .default("enabled")
+      .notNull(),
+    notificationOptIn: mysqlEnum("notificationOptIn", ["enabled", "disabled"])
+      .default("disabled")
+      .notNull(),
+    analyticsPeriodDays: int("analyticsPeriodDays").default(30).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("user_settings_user_unique").on(table.userId)]
+);
+
+export const skills = mysqlTable(
+  "skills",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    stableKey: varchar("stableKey", { length: 180 }).notNull(),
+    title: varchar("title", { length: 160 }).notNull(),
+    description: text("description").notNull(),
+    domain: mysqlEnum("domain", ["algorithms", "mathematics", "practice"])
+      .default("algorithms")
+      .notNull(),
+    color: varchar("color", { length: 16 }).default("#6170ff").notNull(),
+    status: mysqlEnum("status", ["draft", "approved", "deprecated"])
+      .default("approved")
+      .notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [uniqueIndex("skills_stable_key_unique").on(table.stableKey)]
+);
+
+export const skillEdges = mysqlTable(
+  "skill_edges",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    fromSkillId: int("fromSkillId")
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+    toSkillId: int("toSkillId")
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+    relationType: mysqlEnum("relationType", [
+      "prerequisite_of",
+      "related_to",
+      "refines",
+    ]).notNull(),
+    strength: int("strength").default(50).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("skill_edges_unique_relation").on(
+      table.fromSkillId,
+      table.toSkillId,
+      table.relationType
+    ),
+    index("skill_edges_to_idx").on(table.toSkillId),
+  ]
+);
+
+export const problems = mysqlTable(
+  "problems",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sourceId: varchar("sourceId", { length: 64 }).notNull(),
+    externalKey: varchar("externalKey", { length: 180 }).notNull(),
+    title: varchar("title", { length: 320 }).notNull(),
+    sourceUrl: varchar("sourceUrl", { length: 1000 }).notNull(),
+    difficulty: int("difficulty"),
+    tags: json("tags").$type<string[]>().notNull(),
+    accessMode: mysqlEnum("accessMode", [
+      "external_link",
+      "metadata_only",
+      "licensed_local_content",
+      "restricted",
+    ])
+      .default("external_link")
+      .notNull(),
+    sourceUpdatedAt: timestamp("sourceUpdatedAt"),
+    importedAt: timestamp("importedAt").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("problems_source_external_unique").on(
+      table.sourceId,
+      table.externalKey
+    ),
+    index("problems_source_difficulty_idx").on(
+      table.sourceId,
+      table.difficulty
+    ),
+    index("problems_title_idx").on(table.title),
+  ]
+);
+
+export const problemSkills = mysqlTable(
+  "problem_skills",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    problemId: int("problemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    skillId: int("skillId")
+      .notNull()
+      .references(() => skills.id, { onDelete: "cascade" }),
+    relevance: mysqlEnum("relevance", ["primary", "supporting", "related"])
+      .default("supporting")
+      .notNull(),
+    origin: mysqlEnum("origin", ["source_tag_rule", "curator"])
+      .default("source_tag_rule")
+      .notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("problem_skills_unique").on(table.problemId, table.skillId),
+    index("problem_skills_skill_idx").on(table.skillId),
+  ]
+);
+
+export const userProblemProgress = mysqlTable(
+  "user_problem_progress",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    problemId: int("problemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    status: mysqlEnum("status", [
+      "not_started",
+      "planned",
+      "in_progress",
+      "paused",
+      "solved",
+      "review",
+      "skipped",
+      "archived",
+    ])
+      .default("not_started")
+      .notNull(),
+    sourceOfTruth: mysqlEnum("sourceOfTruth", [
+      "user_declared",
+      "external_observation",
+      "system_projection",
+    ])
+      .default("user_declared")
+      .notNull(),
+    firstStartedAt: timestamp("firstStartedAt"),
+    lastActivityAt: timestamp("lastActivityAt"),
+    solvedAt: timestamp("solvedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("progress_user_problem_unique").on(
+      table.userId,
+      table.problemId
+    ),
+    index("progress_user_status_idx").on(table.userId, table.status),
+  ]
+);
+
+export const solvingAttempts = mysqlTable(
+  "solving_attempts",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    problemId: int("problemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    state: mysqlEnum("state", ["active", "paused", "completed", "abandoned"])
+      .default("active")
+      .notNull(),
+    outcome: mysqlEnum("outcome", [
+      "solved",
+      "not_solved",
+      "partial",
+      "unknown",
+    ])
+      .default("unknown")
+      .notNull(),
+    highestHintLevel: int("highestHintLevel").default(-1).notNull(),
+    startedAt: timestamp("startedAt").defaultNow().notNull(),
+    pausedAt: timestamp("pausedAt"),
+    endedAt: timestamp("endedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    index("attempts_user_state_idx").on(table.userId, table.state),
+    index("attempts_problem_idx").on(table.problemId),
+  ]
+);
+
+export const problemNotes = mysqlTable(
+  "problem_notes",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    problemId: int("problemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    attemptId: int("attemptId").references(() => solvingAttempts.id, {
+      onDelete: "set null",
+    }),
+    content: text("content").notNull(),
+    revision: int("revision").default(1).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("notes_user_problem_idx").on(table.userId, table.problemId)]
+);
+
+export const problemHints = mysqlTable(
+  "problem_hints",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    problemId: int("problemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    level: int("level").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("problem_hints_problem_level_unique").on(
+      table.problemId,
+      table.level
+    ),
+  ]
+);
+
+export const activityEvents = mysqlTable(
+  "activity_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    attemptId: int("attemptId").references(() => solvingAttempts.id, {
+      onDelete: "set null",
+    }),
+    problemId: int("problemId").references(() => problems.id, {
+      onDelete: "set null",
+    }),
+    eventType: varchar("eventType", { length: 80 }).notNull(),
+    clientEventId: varchar("clientEventId", { length: 96 }),
+    metadata: json("metadata").$type<Record<string, unknown>>().notNull(),
+    occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+    recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("activity_events_user_client_unique").on(
+      table.userId,
+      table.clientEventId
+    ),
+    index("activity_events_user_occurred_idx").on(
+      table.userId,
+      table.occurredAt
+    ),
+  ]
+);
+
+export const trainingSessions = mysqlTable(
+  "training_sessions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 180 }).notNull(),
+    status: mysqlEnum("status", ["draft", "active", "completed", "archived"])
+      .default("draft")
+      .notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    startedAt: timestamp("startedAt"),
+    completedAt: timestamp("completedAt"),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    index("training_sessions_user_status_idx").on(table.userId, table.status),
+  ]
+);
+
+export const trainingItems = mysqlTable(
+  "training_items",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sessionId: int("sessionId")
+      .notNull()
+      .references(() => trainingSessions.id, { onDelete: "cascade" }),
+    problemId: int("problemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    position: int("position").notNull(),
+    status: mysqlEnum("status", ["queued", "active", "completed", "skipped"])
+      .default("queued")
+      .notNull(),
+    completedAt: timestamp("completedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("training_items_session_position_unique").on(
+      table.sessionId,
+      table.position
+    ),
+    uniqueIndex("training_items_session_problem_unique").on(
+      table.sessionId,
+      table.problemId
+    ),
+  ]
+);
+
+export const analyticsSnapshots = mysqlTable(
+  "analytics_snapshots",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    periodDays: int("periodDays").notNull(),
+    calculationVersion: varchar("calculationVersion", { length: 32 }).notNull(),
+    metrics: json("metrics")
+      .$type<Record<string, number | string | boolean>>()
+      .notNull(),
+    generatedAt: timestamp("generatedAt").defaultNow().notNull(),
+  },
+  table => [
+    index("analytics_snapshots_user_period_idx").on(
+      table.userId,
+      table.periodDays,
+      table.generatedAt
+    ),
+  ]
+);
+
+export const analyticsEvidence = mysqlTable(
+  "analytics_evidence",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    snapshotId: int("snapshotId")
+      .notNull()
+      .references(() => analyticsSnapshots.id, { onDelete: "cascade" }),
+    metricKey: varchar("metricKey", { length: 80 }).notNull(),
+    reasonCode: varchar("reasonCode", { length: 80 }).notNull(),
+    detail: text("detail").notNull(),
+    eventId: int("eventId").references(() => activityEvents.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    index("analytics_evidence_snapshot_metric_idx").on(
+      table.snapshotId,
+      table.metricKey
+    ),
+  ]
+);
+
+export const codeforcesLinks = mysqlTable(
+  "codeforces_links",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    handle: varchar("handle", { length: 64 }).notNull(),
+    normalizedHandle: varchar("normalizedHandle", { length: 64 }).notNull(),
+    verificationStatus: mysqlEnum("verificationStatus", [
+      "declared_public",
+      "verified",
+      "stale",
+      "revoked",
+    ])
+      .default("declared_public")
+      .notNull(),
+    syncConsent: mysqlEnum("syncConsent", ["enabled", "disabled"])
+      .default("enabled")
+      .notNull(),
+    lastSyncedAt: timestamp("lastSyncedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("codeforces_links_user_unique").on(table.userId),
+    uniqueIndex("codeforces_links_handle_unique").on(table.normalizedHandle),
+  ]
+);
+
+export const externalSubmissions = mysqlTable(
+  "external_submissions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sourceId: varchar("sourceId", { length: 64 })
+      .default("codeforces")
+      .notNull(),
+    externalSubmissionId: varchar("externalSubmissionId", {
+      length: 96,
+    }).notNull(),
+    problemId: int("problemId").references(() => problems.id, {
+      onDelete: "set null",
+    }),
+    externalProblemKey: varchar("externalProblemKey", {
+      length: 180,
+    }).notNull(),
+    verdict: varchar("verdict", { length: 64 }).notNull(),
+    language: varchar("language", { length: 120 }),
+    submittedAt: timestamp("submittedAt").notNull(),
+    observedAt: timestamp("observedAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("external_submissions_source_external_unique").on(
+      table.sourceId,
+      table.externalSubmissionId
+    ),
+    index("external_submissions_user_submitted_idx").on(
+      table.userId,
+      table.submittedAt
+    ),
+  ]
+);
+
+export const sourceSyncStates = mysqlTable(
+  "source_sync_states",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sourceId: varchar("sourceId", { length: 64 }).notNull(),
+    scopeKey: varchar("scopeKey", { length: 180 }).notNull(),
+    status: mysqlEnum("status", [
+      "idle",
+      "running",
+      "succeeded",
+      "failed",
+      "rate_limited",
+    ])
+      .default("idle")
+      .notNull(),
+    cursor: varchar("cursor", { length: 255 }),
+    lastError: text("lastError"),
+    lastStartedAt: timestamp("lastStartedAt"),
+    lastFinishedAt: timestamp("lastFinishedAt"),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("source_sync_states_source_scope_unique").on(
+      table.sourceId,
+      table.scopeKey
+    ),
+  ]
+);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
-// TODO: Add your tables here
+export type Problem = typeof problems.$inferSelect;
+export type SolvingAttempt = typeof solvingAttempts.$inferSelect;
+export type TrainingSession = typeof trainingSessions.$inferSelect;

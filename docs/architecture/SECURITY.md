@@ -11,30 +11,30 @@ OlimpHub обрабатывает личную историю обучения, 
 
 ## Активы и доверенные границы
 
-| Актив | Основная угроза | Базовая защита |
-|---|---|---|
-| Учётная запись, сессия, recovery data | Захват аккаунта и сессии. | Server-side authentication, безопасные HttpOnly/Secure cookies, ротация/отзыв сессий, защита от перебора. |
-| Личный прогресс, заметки, попытки | Несанкционированное чтение/изменение. | Авторизация владельца на каждом сценарии, tenant scoping на сервере, audit событий и тесты запрета доступа. |
-| Внешние аккаунты/токены | Кража credentials или ложная привязка. | Секреты только server-side, явное consent/link flow, статус верификации, отзыв и rotation. |
-| Условия/тесты задач | Нарушение прав и утечка hidden tests. | Source access policy, provenance, content scope, encrypted trusted store, минимальные проекции. |
-| Пользовательский код | Escape/DoS/exfiltration. | Отдельный microVM execution plane; политика в `EXECUTION_SECURITY.md`. |
-| AI context и ответы | Prompt injection, утечка, подсказка-решение. | Allowlisted context, структурированные outputs, disclosure ceiling, zero write-tools; `AI_ARCHITECTURE.md`. |
-| Telegram token/webhook | Захват Bot API и поддельные updates. | Secret manager, webhook secret header, idempotent inbox; `TELEGRAM_ARCHITECTURE.md`. |
+| Актив                                 | Основная угроза                              | Базовая защита                                                                                              |
+| ------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Учётная запись, сессия, recovery data | Захват аккаунта и сессии.                    | Server-side authentication, безопасные HttpOnly/Secure cookies, ротация/отзыв сессий, защита от перебора.   |
+| Личный прогресс, заметки, попытки     | Несанкционированное чтение/изменение.        | Авторизация владельца на каждом сценарии, tenant scoping на сервере, audit событий и тесты запрета доступа. |
+| Внешние аккаунты/токены               | Кража credentials или ложная привязка.       | Секреты только server-side, явное consent/link flow, статус верификации, отзыв и rotation.                  |
+| Условия/тесты задач                   | Нарушение прав и утечка hidden tests.        | Source access policy, provenance, content scope, encrypted trusted store, минимальные проекции.             |
+| Пользовательский код                  | Escape/DoS/exfiltration.                     | Отдельный microVM execution plane; политика в `EXECUTION_SECURITY.md`.                                      |
+| AI context и ответы                   | Prompt injection, утечка, подсказка-решение. | Allowlisted context, структурированные outputs, disclosure ceiling, zero write-tools; `AI_ARCHITECTURE.md`. |
+| Telegram token/webhook                | Захват Bot API и поддельные updates.         | Secret manager, webhook secret header, idempotent inbox; `TELEGRAM_ARCHITECTURE.md`.                        |
 
 ## Обязательные controls
 
-| Область | Требование | Проверка |
-|---|---|---|
-| Authentication | Идентификация и управление сессией происходят только на сервере; нет токенов в localStorage, URL или логах. | Тесты cookie flags, session fixation/logout/revocation и rate limits входа. |
-| Authorization | Каждая read/write операция проверяет user/role/resource ownership на сервере. | Integration tests «пользователь A не может читать/менять данные B». |
-| Input/Output | Все API входы проходят строгую schema validation; HTML/Markdown и внешние тексты санитизируются контекстно. | Fuzz/negative tests на invalid enum, ID, oversized payload, XSS/injection. |
-| CSRF/CORS | Cookie-based изменяющие запросы имеют защиту CSRF; CORS — точный allowlist. | Browser integration tests для cross-origin/post scenarios. |
-| Rate limiting | Лимиты на login, linking, search, AI, webhook и execution jobs с безопасным 429. | Concurrency tests и метрики rejected/retry requests. |
-| Secrets | Ключи, tokens, API secrets, private URLs и private test data не попадают в Git/клиент/логи. | Secret scanning в CI, redaction tests, review config changes. |
-| Storage | Шифрование в transit, минимизация PII, backups/recovery, отдельные credentials по сервису. | Restore drill и проверка доступа к backup. |
-| Dependencies | Версии пиннингуются, supply-chain сканирование и обновление по risk policy. | CI dependency/SBOM scanning до релиза. |
-| Observability | Логи структурированы, PII/codes/secrets redacted, события доступа и sensitive actions auditируются. | Log inspection/redaction tests, alert coverage. |
-| Incident response | Kill switches для AI, Telegram и execution; роли/контакты/rollback документированы. | Tabletop exercise до публичного запуска. |
+| Область           | Требование                                                                                                  | Проверка                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Authentication    | Идентификация и управление сессией происходят только на сервере; нет токенов в localStorage, URL или логах. | Тесты cookie flags, session fixation/logout/revocation и rate limits входа. |
+| Authorization     | Каждая read/write операция проверяет user/role/resource ownership на сервере.                               | Integration tests «пользователь A не может читать/менять данные B».         |
+| Input/Output      | Все API входы проходят строгую schema validation; HTML/Markdown и внешние тексты санитизируются контекстно. | Fuzz/negative tests на invalid enum, ID, oversized payload, XSS/injection.  |
+| CSRF/CORS         | Cookie-based изменяющие запросы имеют защиту CSRF; CORS — точный allowlist.                                 | Browser integration tests для cross-origin/post scenarios.                  |
+| Rate limiting     | Лимиты на login, linking, search, AI, webhook и execution jobs с безопасным 429.                            | Concurrency tests и метрики rejected/retry requests.                        |
+| Secrets           | Ключи, tokens, API secrets, private URLs и private test data не попадают в Git/клиент/логи.                 | Secret scanning в CI, redaction tests, review config changes.               |
+| Storage           | Шифрование в transit, минимизация PII, backups/recovery, отдельные credentials по сервису.                  | Restore drill и проверка доступа к backup.                                  |
+| Dependencies      | Версии пиннингуются, supply-chain сканирование и обновление по risk policy.                                 | CI dependency/SBOM scanning до релиза.                                      |
+| Observability     | Логи структурированы, PII/codes/secrets redacted, события доступа и sensitive actions auditируются.         | Log inspection/redaction tests, alert coverage.                             |
+| Incident response | Kill switches для AI, Telegram и execution; роли/контакты/rollback документированы.                         | Tabletop exercise до публичного запуска.                                    |
 
 ## Особые угрозы
 
@@ -58,15 +58,15 @@ OWASP ASVS 5.0.0 будет зафиксирован как версия baselin
 
 ## Release gates
 
-| Gate | До чего обязателен |
-|---|---|
-| AuthN/AuthZ integration tests | До первой персональной read/write функции. |
-| Secret/dependency scanning | До первого production deployment. |
-| Privacy/retention/export policy | До публичного сбора activity telemetry. |
-| Full execution threat review | До любой кнопки запуска пользовательского кода. |
-| AI red-team and leakage suite | До AI Coach для пользователей. |
-| Telegram webhook/link security tests | До webhook enablement. |
-| Incident/restore drill | До beta с реальными личными данными. |
+| Gate                                 | До чего обязателен                              |
+| ------------------------------------ | ----------------------------------------------- |
+| AuthN/AuthZ integration tests        | До первой персональной read/write функции.      |
+| Secret/dependency scanning           | До первого production deployment.               |
+| Privacy/retention/export policy      | До публичного сбора activity telemetry.         |
+| Full execution threat review         | До любой кнопки запуска пользовательского кода. |
+| AI red-team and leakage suite        | До AI Coach для пользователей.                  |
+| Telegram webhook/link security tests | До webhook enablement.                          |
+| Incident/restore drill               | До beta с реальными личными данными.            |
 
 ## References
 

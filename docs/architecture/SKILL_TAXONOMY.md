@@ -16,13 +16,13 @@ OlimpHub использует **полиерархическую версион�
 
 ## 2. Цели и нецели
 
-| Цели | Нецели |
-|---|---|
-| Структурировать каталог, тренировку и объяснимую аналитику. | Оценивать интеллект, талант или профессиональную пригодность пользователя. |
-| Поддержать алгоритмическое программирование сейчас и математику без миграции модели позже. | Подменять знания пользователя одной цифрой «уровня». |
-| Сохранять источник, уверенность и версию каждого сопоставления. | Автоматически считать чужие теги безошибочными. |
-| Выражать несколько путей к навыку и зависимости между ними. | Строить произвольный циклический «граф знаний». |
-| Делать рекомендации объяснимыми по событиям пользователя. | Использовать LLM как непрозрачный калькулятор базовой статистики. |
+| Цели                                                                                       | Нецели                                                                     |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| Структурировать каталог, тренировку и объяснимую аналитику.                                | Оценивать интеллект, талант или профессиональную пригодность пользователя. |
+| Поддержать алгоритмическое программирование сейчас и математику без миграции модели позже. | Подменять знания пользователя одной цифрой «уровня».                       |
+| Сохранять источник, уверенность и версию каждого сопоставления.                            | Автоматически считать чужие теги безошибочными.                            |
+| Выражать несколько путей к навыку и зависимости между ними.                                | Строить произвольный циклический «граф знаний».                            |
+| Делать рекомендации объяснимыми по событиям пользователя.                                  | Использовать LLM как непрозрачный калькулятор базовой статистики.          |
 
 ## 3. Данные Skill Map
 
@@ -37,28 +37,28 @@ erDiagram
     SKILL_GRAPH_VERSION ||--o{ SKILL : contains
 ```
 
-| Сущность | Назначение | Ключевые поля |
-|---|---|---|
-| `SkillGraphVersion` | Набор утверждённых навыков и рёбер на момент расчёта. | `id`, `semanticVersion`, `status`, `publishedAt`, `changeSummary`. |
-| `Skill` | Стабильная учебная компетенция. | `id`, `stableKey`, `domain`, `kind`, `difficultyBand`, `status`, `graphVersionId`. |
-| `SkillLabel` | Локализованное имя и краткое объяснение. | `skillId`, `locale`, `name`, `description`. |
-| `SkillEdge` | Направленная или симметричная семантическая связь. | `fromSkillId`, `toSkillId`, `relationType`, `strength`, `status`, `graphVersionId`. |
-| `ProblemSkillLink` | Связь задачи с навыком. | `problemId`, `skillId`, `relevance`, `origin`, `confidence`, `reviewStatus`. |
-| `SourceTag` | Наблюдаемый тег конкретного источника. | `sourceId`, `rawValue`, `normalisedValue`, `locale`. |
-| `SourceTagMapping` | Управляемый перевод тега источника в навык. | `sourceTagId`, `skillId`, `relation`, `confidence`, `origin`, `reviewStatus`. |
-| `SkillEvidence` | Производная объяснимая запись, почему изменена оценка навыка. | `userId`, `skillId`, `eventId`, `weight`, `reasonCode`, `calculationVersion`. |
+| Сущность            | Назначение                                                    | Ключевые поля                                                                       |
+| ------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `SkillGraphVersion` | Набор утверждённых навыков и рёбер на момент расчёта.         | `id`, `semanticVersion`, `status`, `publishedAt`, `changeSummary`.                  |
+| `Skill`             | Стабильная учебная компетенция.                               | `id`, `stableKey`, `domain`, `kind`, `difficultyBand`, `status`, `graphVersionId`.  |
+| `SkillLabel`        | Локализованное имя и краткое объяснение.                      | `skillId`, `locale`, `name`, `description`.                                         |
+| `SkillEdge`         | Направленная или симметричная семантическая связь.            | `fromSkillId`, `toSkillId`, `relationType`, `strength`, `status`, `graphVersionId`. |
+| `ProblemSkillLink`  | Связь задачи с навыком.                                       | `problemId`, `skillId`, `relevance`, `origin`, `confidence`, `reviewStatus`.        |
+| `SourceTag`         | Наблюдаемый тег конкретного источника.                        | `sourceId`, `rawValue`, `normalisedValue`, `locale`.                                |
+| `SourceTagMapping`  | Управляемый перевод тега источника в навык.                   | `sourceTagId`, `skillId`, `relation`, `confidence`, `origin`, `reviewStatus`.       |
+| `SkillEvidence`     | Производная объяснимая запись, почему изменена оценка навыка. | `userId`, `skillId`, `eventId`, `weight`, `reasonCode`, `calculationVersion`.       |
 
 `stableKey` не зависит от локализованного названия и имеет вид `algorithms.graphs.shortest-paths` или `mathematics.number-theory.modular-arithmetic`. При переименовании сохраняется тот же ключ; при смысловом разделении старый навык выводится из употребления, а переход фиксируется миграцией карты, а не скрытым переписыванием истории.
 
 ## 4. Семантика связей
 
-| `relationType` | Направление | Значение | Ограничение |
-|---|---|---|---|
-| `contains` | родитель → дочерний | Навигационная/педагогическая группировка. | Может образовывать полиерархию, но не используется как prerequisite автоматически. |
-| `prerequisite_of` | предпосылка → навык | Базовая компетенция обычно нужна до освоения следующей. | Подграф должен быть DAG; любая попытка создать цикл отклоняется. |
-| `related_to` | симметричное | Навыки часто появляются вместе, но один не является условием другого. | Хранится в каноническом порядке ID. |
-| `alternative_path_to` | навык → навык | Одна компетенция может компенсировать другой набор предпосылок в контексте темы. | Не повышает mastery автоматически. |
-| `refines` | общее → узкое | Более узкий навык уточняет общий. | Не означает, что высокая оценка узкого навыка равна высокой общей оценке. |
+| `relationType`        | Направление         | Значение                                                                         | Ограничение                                                                        |
+| --------------------- | ------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `contains`            | родитель → дочерний | Навигационная/педагогическая группировка.                                        | Может образовывать полиерархию, но не используется как prerequisite автоматически. |
+| `prerequisite_of`     | предпосылка → навык | Базовая компетенция обычно нужна до освоения следующей.                          | Подграф должен быть DAG; любая попытка создать цикл отклоняется.                   |
+| `related_to`          | симметричное        | Навыки часто появляются вместе, но один не является условием другого.            | Хранится в каноническом порядке ID.                                                |
+| `alternative_path_to` | навык → навык       | Одна компетенция может компенсировать другой набор предпосылок в контексте темы. | Не повышает mastery автоматически.                                                 |
+| `refines`             | общее → узкое       | Более узкий навык уточняет общий.                                                | Не означает, что высокая оценка узкого навыка равна высокой общей оценке.          |
 
 Изменение edge в опубликованной версии не пересчитывает исторический отчёт задним числом: `SkillEvidence` и `ProgressSnapshot` сохраняют `calculationVersion` и `skillGraphVersion`.
 
@@ -66,42 +66,42 @@ erDiagram
 
 Это исходный **каталог ключей**, а не завершённый список каждой техники. Новые навыки добавляются только с определением, местом в карте, хотя бы одной обоснованной связью и миграционной заметкой.
 
-| Корневая область | Основные ветви | Примеры leaf-навыков |
-|---|---|---|
-| `foundations` | сложность, корректность, реализация | асимптотика, инварианты, контрпримеры, переполнение, ввод-вывод, отладка. |
-| `data-structures` | линейные, поисковые, диапазонные, деревья структур | stack/queue/deque, hash map, DSU, Fenwick tree, segment tree, sparse table, heap. |
-| `algorithms.search-and-order` | сортировка, бинарный поиск, two pointers, sweep line | lower/upper bound, параметрический поиск, скользящее окно, coordinate compression. |
-| `algorithms.dynamic-programming` | состояния, оптимизации, подмножества, последовательности | knapsack, LIS/LCS, bitmask DP, digit DP, tree DP, interval DP. |
-| `algorithms.graphs` | обходы, связность, деревья, пути, потоки | BFS/DFS, topological sort, SCC, shortest paths, MST, LCA, max flow, matching. |
-| `algorithms.strings` | базовая обработка, поиск, структуры строк | prefix function, Z-function, trie, suffix array, suffix automaton, rolling hash. |
-| `algorithms.geometry` | представление, ориентация, пересечения, выпуклость | cross product, line intersection, point-in-polygon, convex hull, rotating calipers. |
-| `algorithms.combinatorial` | перебор, meet-in-the-middle, игры, constructive | backtracking, pruning, Grundy, inclusion-exclusion, constructive algorithms. |
-| `mathematics-for-programming` | теория чисел, комбинаторика, вероятность, алгебра | sieve, gcd/extgcd, modular inverse, CRT, binomial coefficients, expected value, matrices. |
-| `contest-practice` | моделирование, чтение, распределение времени, анализ | декомпозиция условия, выбор ограничения, оценка тестов, послесоревновательный разбор. |
+| Корневая область                 | Основные ветви                                           | Примеры leaf-навыков                                                                      |
+| -------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `foundations`                    | сложность, корректность, реализация                      | асимптотика, инварианты, контрпримеры, переполнение, ввод-вывод, отладка.                 |
+| `data-structures`                | линейные, поисковые, диапазонные, деревья структур       | stack/queue/deque, hash map, DSU, Fenwick tree, segment tree, sparse table, heap.         |
+| `algorithms.search-and-order`    | сортировка, бинарный поиск, two pointers, sweep line     | lower/upper bound, параметрический поиск, скользящее окно, coordinate compression.        |
+| `algorithms.dynamic-programming` | состояния, оптимизации, подмножества, последовательности | knapsack, LIS/LCS, bitmask DP, digit DP, tree DP, interval DP.                            |
+| `algorithms.graphs`              | обходы, связность, деревья, пути, потоки                 | BFS/DFS, topological sort, SCC, shortest paths, MST, LCA, max flow, matching.             |
+| `algorithms.strings`             | базовая обработка, поиск, структуры строк                | prefix function, Z-function, trie, suffix array, suffix automaton, rolling hash.          |
+| `algorithms.geometry`            | представление, ориентация, пересечения, выпуклость       | cross product, line intersection, point-in-polygon, convex hull, rotating calipers.       |
+| `algorithms.combinatorial`       | перебор, meet-in-the-middle, игры, constructive          | backtracking, pruning, Grundy, inclusion-exclusion, constructive algorithms.              |
+| `mathematics-for-programming`    | теория чисел, комбинаторика, вероятность, алгебра        | sieve, gcd/extgcd, modular inverse, CRT, binomial coefficients, expected value, matrices. |
+| `contest-practice`               | моделирование, чтение, распределение времени, анализ     | декомпозиция условия, выбор ограничения, оценка тестов, послесоревновательный разбор.     |
 
 ### Ключевые prerequisite-цепочки
 
-| Целевой навык | Минимальные предпосылки | Почему |
-|---|---|---|
-| `algorithms.graphs.shortest-paths.dijkstra` | `foundations.complexity`, `data-structures.heap`, `algorithms.graphs.traversal` | Нужны оценка сложности, приоритетная очередь и базовая модель графа. |
-| `algorithms.graphs.trees.lca` | `algorithms.graphs.trees.rooting`, `algorithms.graphs.traversal`, `algorithms.search-and-order.binary-search` | Дерево нужно укоренить; распространённые реализации используют двоичный подъём. |
-| `algorithms.dynamic-programming.bitmask` | `algorithms.dynamic-programming.state-design`, `foundations.bit-operations` | Состояние кодируется подмножеством. |
-| `data-structures.range.segment-tree` | `data-structures.range.prefix-sums`, `algorithms.divide-and-conquer`, `foundations.invariants` | Понимание агрегата и инварианта узла важно для корректности. |
-| `mathematics-for-programming.number-theory.crt` | `mathematics-for-programming.number-theory.gcd`, `mathematics-for-programming.number-theory.modular-arithmetic` | Связь модулей строится на gcd и сравнениях. |
-| `algorithms.strings.suffix-array` | `algorithms.strings.pattern-matching`, `algorithms.search-and-order.sorting`, `foundations.complexity` | Требует представления строк и сортировочного мышления. |
+| Целевой навык                                   | Минимальные предпосылки                                                                                         | Почему                                                                          |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `algorithms.graphs.shortest-paths.dijkstra`     | `foundations.complexity`, `data-structures.heap`, `algorithms.graphs.traversal`                                 | Нужны оценка сложности, приоритетная очередь и базовая модель графа.            |
+| `algorithms.graphs.trees.lca`                   | `algorithms.graphs.trees.rooting`, `algorithms.graphs.traversal`, `algorithms.search-and-order.binary-search`   | Дерево нужно укоренить; распространённые реализации используют двоичный подъём. |
+| `algorithms.dynamic-programming.bitmask`        | `algorithms.dynamic-programming.state-design`, `foundations.bit-operations`                                     | Состояние кодируется подмножеством.                                             |
+| `data-structures.range.segment-tree`            | `data-structures.range.prefix-sums`, `algorithms.divide-and-conquer`, `foundations.invariants`                  | Понимание агрегата и инварианта узла важно для корректности.                    |
+| `mathematics-for-programming.number-theory.crt` | `mathematics-for-programming.number-theory.gcd`, `mathematics-for-programming.number-theory.modular-arithmetic` | Связь модулей строится на gcd и сравнениях.                                     |
+| `algorithms.strings.suffix-array`               | `algorithms.strings.pattern-matching`, `algorithms.search-and-order.sorting`, `foundations.complexity`          | Требует представления строк и сортировочного мышления.                          |
 
 ## 6. Перспективная карта математических олимпиад
 
 Математика — полноценный `domain=mathematics`, а не tag у программирования. Это сохраняет общие навыки (доказательство, комбинаторное мышление), но не заставляет доказывать теоремы через модель исходного кода.
 
-| Ветвь | Подветви | Примеры навыков |
-|---|---|---|
-| `mathematics.algebra` | многочлены, уравнения, неравенства, функциональные уравнения | разложение, Vieta, оценка AM-GM, инвариант функционального уравнения. |
-| `mathematics.number-theory` | делимость, сравнения, диофантовы уравнения, p-adic/оценки | gcd, модульная арифметика, порядки, LTE, китайская теорема. |
-| `mathematics.combinatorics` | подсчёт, принцип Дирихле, инварианты, экстремальный принцип, графы | inclusion-exclusion, double counting, pigeonhole, extremal argument. |
-| `mathematics.geometry` | евклидова, аффинная, проективная, преобразования | подобие, окружности, power of a point, barycentric/coординаты. |
-| `mathematics.probability` | вероятностные модели, ожидание, инварианты случайности | условная вероятность, линейность ожидания, martingales — после базовой валидации программы. |
-| `mathematics.proof` | логика, кванторы, построение доказательства, контрпример | прямое/от противного/индукция, case analysis, proof audit. |
+| Ветвь                       | Подветви                                                           | Примеры навыков                                                                             |
+| --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `mathematics.algebra`       | многочлены, уравнения, неравенства, функциональные уравнения       | разложение, Vieta, оценка AM-GM, инвариант функционального уравнения.                       |
+| `mathematics.number-theory` | делимость, сравнения, диофантовы уравнения, p-adic/оценки          | gcd, модульная арифметика, порядки, LTE, китайская теорема.                                 |
+| `mathematics.combinatorics` | подсчёт, принцип Дирихле, инварианты, экстремальный принцип, графы | inclusion-exclusion, double counting, pigeonhole, extremal argument.                        |
+| `mathematics.geometry`      | евклидова, аффинная, проективная, преобразования                   | подобие, окружности, power of a point, barycentric/coординаты.                              |
+| `mathematics.probability`   | вероятностные модели, ожидание, инварианты случайности             | условная вероятность, линейность ожидания, martingales — после базовой валидации программы. |
+| `mathematics.proof`         | логика, кванторы, построение доказательства, контрпример           | прямое/от противного/индукция, case analysis, proof audit.                                  |
 
 На старте математика не участвует в автоматических рекомендациях алгоритмических задач, пока не появятся собственные типы попыток, критерии завершения и источники с проверенными правами. Она уже поддерживается `Problem.kind=mathematics` и `ProblemSkillLink` из модели каталога.
 
@@ -109,12 +109,12 @@ erDiagram
 
 Внешний тег всегда проходит через `SourceTagMapping`. Пример: Codeforces `dp` может иметь approved mapping на `algorithms.dynamic-programming.state-design` с малой/средней релевантностью, но не доказывает наличие конкретного leaf-навыка `digit-dp`. Один тег может соответствовать нескольким навыкам; одна задача может быть связана с несколькими навыками.
 
-| `origin` | Когда допустим | Требование к UI/аналитике |
-|---|---|---|
-| `source_tag_rule` | Детерминированное задокументированное сопоставление тега источника. | Отображать как «на основе тега источника», не как педагогическую экспертизу. |
-| `curator` | Ручная оценка с указанием проверившего и версии. | Высокая уверенность после review; audit trail обязателен. |
-| `model_suggestion` | Будущая модель предложила гипотезу. | Не используется в рекомендациях или mastery без approved review. |
-| `user_annotation` | Пользователь добавил личную метку. | Отделена от общей карты и не изменяет другие аккаунты. |
+| `origin`           | Когда допустим                                                      | Требование к UI/аналитике                                                    |
+| ------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `source_tag_rule`  | Детерминированное задокументированное сопоставление тега источника. | Отображать как «на основе тега источника», не как педагогическую экспертизу. |
+| `curator`          | Ручная оценка с указанием проверившего и версии.                    | Высокая уверенность после review; audit trail обязателен.                    |
+| `model_suggestion` | Будущая модель предложила гипотезу.                                 | Не используется в рекомендациях или mastery без approved review.             |
+| `user_annotation`  | Пользователь добавил личную метку.                                  | Отделена от общей карты и не изменяет другие аккаунты.                       |
 
 ## 8. Измерение mastery: интерфейс с будущим движком
 
@@ -132,13 +132,13 @@ erDiagram
 
 Новая версия карты публикуется только после проверки: уникальности stable key, валидных локалей, отсутствия циклов в prerequisite-графе, отсутствия self-edge, понятного определения новых навыков и миграционной заметки. Удаление навыка заменяется `deprecated`-статусом и relation `replaced_by`; старые отчёты остаются читаемыми.
 
-| Проверка | Ожидаемый результат |
-|---|---|
-| Добавить `prerequisite_of` с циклом. | Транзакция отклоняется с путём найденного цикла. |
-| Добавить второй `Skill` с тем же `stableKey`. | Ограничение уникальности отклоняет запись. |
-| Сопоставить задачу с неутверждённым навыком. | Связь остаётся draft и не участвует в расчётах. |
-| Изменить опубликованную карту. | Требуется новая `SkillGraphVersion`; история не перезаписывается. |
-| Источник прислал неизвестный тег. | Создаётся наблюдение/raw tag без автоматической публикации нового навыка. |
+| Проверка                                      | Ожидаемый результат                                                       |
+| --------------------------------------------- | ------------------------------------------------------------------------- |
+| Добавить `prerequisite_of` с циклом.          | Транзакция отклоняется с путём найденного цикла.                          |
+| Добавить второй `Skill` с тем же `stableKey`. | Ограничение уникальности отклоняет запись.                                |
+| Сопоставить задачу с неутверждённым навыком.  | Связь остаётся draft и не участвует в расчётах.                           |
+| Изменить опубликованную карту.                | Требуется новая `SkillGraphVersion`; история не перезаписывается.         |
+| Источник прислал неизвестный тег.             | Создаётся наблюдение/raw tag без автоматической публикации нового навыка. |
 
 ## 10. Последствия для roadmap
 
