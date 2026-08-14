@@ -28,7 +28,7 @@
 - [x] P0-003 Research AtCoder, CSES, Kattis and viable olympiad data sources. See `docs/data/OTHER_SOURCES.md` (completed 2026-08-14).
 - [!] P0-003a Confirm written permission or a compatible published licence before implementing any non-Codeforces automated importer or local content mirror. Blocked: this requires a source operator/rightsholder response; see `docs/data/OTHER_SOURCES.md`.
 - [x] P0-004 Define canonical Problem data model independent of source. See `docs/architecture/DATABASE.md` (completed 2026-08-14).
-- [ ] P0-005 Define user/activity/submission data model.
+- [x] P0-005 Define user/activity/submission data model. See `docs/architecture/LEARNING_DATA.md` (completed 2026-08-14).
 - [ ] P0-006 Define skill taxonomy and skill dependency graph.
 - [ ] P0-007 Define AI Coach architecture and provider abstraction.
 - [ ] P0-008 Define secure code execution architecture.
