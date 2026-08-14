@@ -23,7 +23,7 @@
 
 # Phase 0 — Discovery & Product Definition
 
-- [ ] P0-001 Research competitive programming platforms and extract useful UX/product patterns.
+- [x] P0-001 Research competitive programming platforms and extract useful UX/product patterns. See `docs/product/PLATFORM_UX_RESEARCH.md` (completed 2026-08-14).
 - [ ] P0-002 Research Codeforces API and data limitations.
 - [ ] P0-003 Research AtCoder, CSES, Kattis and viable olympiad data sources.
 - [ ] P0-004 Define canonical Problem data model independent of source.

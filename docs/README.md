@@ -2,6 +2,10 @@
 
 This directory contains the product and engineering documentation that should stay aligned with the implementation.
 
+## Current documentation
+
+- [product/PLATFORM_UX_RESEARCH.md](product/PLATFORM_UX_RESEARCH.md) — observed UX patterns from competitive-programming platforms and OlimpHub acceptance criteria.
+
 ## Planned documentation
 
 - `product/PRODUCT_SPEC.md` — product vision, users, core workflows and feature requirements.
