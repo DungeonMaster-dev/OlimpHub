@@ -25,7 +25,8 @@
 
 - [x] P0-001 Research competitive programming platforms and extract useful UX/product patterns. See `docs/product/PLATFORM_UX_RESEARCH.md` (completed 2026-08-14).
 - [x] P0-002 Research Codeforces API and data limitations. See `docs/data/CODEFORCES_API.md` (completed 2026-08-14).
-- [ ] P0-003 Research AtCoder, CSES, Kattis and viable olympiad data sources.
+- [x] P0-003 Research AtCoder, CSES, Kattis and viable olympiad data sources. See `docs/data/OTHER_SOURCES.md` (completed 2026-08-14).
+- [!] P0-003a Confirm written permission or a compatible published licence before implementing any non-Codeforces automated importer or local content mirror. Blocked: this requires a source operator/rightsholder response; see `docs/data/OTHER_SOURCES.md`.
 - [ ] P0-004 Define canonical Problem data model independent of source.
 - [ ] P0-005 Define user/activity/submission data model.
 - [ ] P0-006 Define skill taxonomy and skill dependency graph.
