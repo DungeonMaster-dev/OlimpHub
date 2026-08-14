@@ -14,7 +14,8 @@ OlimpHub uses typed tRPC procedures under `/api/trpc`. Browser clients do not ca
 | Training   | `training.list`, `create`, `detail`, `updateItem`            | Session ownership is validated before item state changes.                                                     |
 | Progress   | `analytics.summary`                                          | Returns a selected period, calculation version, deterministic metrics and explicit evidence reasons.          |
 | Settings   | `settings.get`, `update`, `setCodeforcesHandle`              | Preferences and linked handle are private and user-scoped.                                                    |
-| Codeforces | `codeforces.syncCatalogue`, `syncSubmissions`                | Uses the official API from the server, records sync status, and enforces a one-minute scope cooldown.         |
+| Codeforces | `codeforces.syncCatalogue`, `syncSubmissions` | Uses the official API from the server, records sync status, and enforces a one-minute scope cooldown. |
+| Submission history | `submissions.list` | Returns only the authenticated user's imported public verdicts, supports verdict filtering, and joins canonical problem metadata when available. |
 
 The public `GET /api/healthz` endpoint reports process liveness. `GET /api/readyz` additionally executes a bounded database query and returns `503` when the application cannot use its persistence layer. Health responses do not disclose account, configuration or source data.
 

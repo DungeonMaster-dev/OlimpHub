@@ -54,20 +54,20 @@
 
 # Phase 2 — Core UI
 
-- [ ] P1-201 Design and implement application shell/navigation.
-- [ ] P1-202 Implement authentication screens and flow.
-- [ ] P1-203 Implement Dashboard.
-- [ ] P1-204 Implement Problem Explorer.
-- [ ] P1-205 Implement Problem Page.
-- [ ] P1-206 Implement submission history.
-- [ ] P1-207 Implement training UI.
+- [x] P1-201 Design and implement application shell/navigation. Protected responsive workspace shell, sidebar navigation and persistent layout are implemented and visually reviewed.
+- [x] P1-202 Implement authentication screens and flow. Manus OAuth entry, loading shell and private-workspace gate are implemented; auth boundary tests pass.
+- [~] P1-203 Implement Dashboard. UI and protected data query exist; complete only after a persisted attempt/activity journey is verified.
+- [~] P1-204 Implement Problem Explorer. UI and protected filters exist; complete only after the official import and an imported-data filter journey are verified.
+- [~] P1-205 Implement Problem Page. Workspace implementation exists; complete only after an imported problem, attempt, note and hint journey are verified.
+- [x] P1-206 Implement submission history. Protected Codeforces verdict history, verdict filtering, canonical-problem links, private empty state and an anonymous-access regression test are implemented and visually reviewed.
+- [~] P1-207 Implement training UI. Session implementation exists; complete only after an imported-data creation and progression journey are verified.
 - [ ] P1-208 Implement contest UI.
-- [ ] P1-209 Implement analytics UI.
-- [ ] P1-210 Implement Skills UI.
+- [x] P1-209 Implement analytics UI. Configurable period, calculation-version visibility and evidence-backed metrics are implemented.
+- [x] P1-210 Implement Skills UI. Approved skill map, prerequisite paths and imported problem-link rendering are implemented.
 - [ ] P1-211 Implement AI Coach UI.
-- [ ] P1-212 Implement settings/profile.
-- [ ] P1-213 Add loading, error and empty states.
-- [ ] P1-214 Perform first UX audit and fix issues.
+- [~] P1-212 Implement settings/profile. UI and protected persistence code exist; complete only after a successful settings and Codeforces-handle persistence journey is verified.
+- [x] P1-213 Add loading, error and empty states. Core screens provide loading skeletons and explicit empty/error states.
+- [x] P1-214 Perform first UX audit and fix issues. Desktop and mobile visual review was completed; navigation, filtering and skill-map clarity were improved.
 
 # Phase 3 — Problem Data Platform
 

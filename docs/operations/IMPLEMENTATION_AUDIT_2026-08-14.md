@@ -1,0 +1,29 @@
+# Implementation Audit — 2026-08-14
+
+## Scope and method
+
+This audit rechecked every backlog item currently marked complete. A task remains **complete** only where the repository contains the required implementation and there is direct evidence from a test, a successfully applied migration, a verified document, or a rendered authenticated UI state. A task that has implementation but lacks an end-to-end scenario with persisted data is marked **in progress** in the operational backlog rather than treated as finished.
+
+| Area                   | Evidence gathered                                                                                                                                                                             | Result                                                                                                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 discovery      | All thirteen named product, data, security and architecture documents exist and are non-empty.                                                                                                | Confirmed complete.                                                                                                                                                                                  |
+| Engineering foundation | Stack/config/API/development docs, dev container, CI, ESLint, schema, four migrations and structured logging exist.                                                                           | Confirmed complete.                                                                                                                                                                                  |
+| Database               | Drizzle migrations `0000`–`0003` exist; the managed database has the corresponding schema, including skills and durable receipts.                                                             | Confirmed complete.                                                                                                                                                                                  |
+| Server contracts       | Protected tRPC modules exist for catalogue, workspace, training, skills, analytics, settings and Codeforces.                                                                                  | Confirmed complete for the documented baseline.                                                                                                                                                      |
+| Quality gates          | `pnpm test` passed 18 tests; `pnpm check`, `pnpm lint`, `pnpm format:check` and `git diff --check` passed. Lint has one pre-existing non-blocking Fast Refresh warning in `ThemeContext.tsx`. | Confirmed complete.                                                                                                                                                                                  |
+| Core UI                | Desktop render was inspected for Today, Explorer, Training, Skill Map, Progress, Settings, an unavailable problem, and an unavailable training session.                                       | Shell, authentication gate, skills, analytics, settings and state handling are confirmed. Data-dependent flows remain in progress until exercised with imported problems and persisted user records. |
+
+## Completed Phase 2 tasks with evidence
+
+| Backlog item                        | Code and verification evidence                                                                                                   |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| P1-201 Application shell/navigation | `client/src/components/DashboardLayout.tsx`, `client/src/App.tsx`, authenticated desktop screenshot.                             |
+| P1-202 Authentication flow          | OAuth entry in `DashboardLayout.tsx`, protected server procedures and `server/olimp.authorization.test.ts`.                      |
+| P1-209 Analytics UI                 | `client/src/pages/Progress.tsx`, analytics router, `server/domain/learning.test.ts`, authenticated screenshot.                   |
+| P1-210 Skills UI                    | `client/src/pages/Skills.tsx`, `drizzle/0002_seed_initial_skill_graph.sql`, authenticated screenshot showing prerequisite paths. |
+| P1-213 State handling               | Loading skeletons, explicit unavailable-problem view and empty-state render in audited screenshots.                              |
+| P1-214 UX audit                     | Desktop/mobile review and subsequent navigation, filters and prerequisite-path changes are present in the repository.            |
+
+## Items correctly returned to in progress
+
+The dashboard, explorer, workspace, training and settings UI have source implementations, but the audit had no imported problem catalogue or persisted attempt/training session to prove their complete end-to-end workflows. Their next steps are testable: import official Codeforces metadata, create a workspace attempt, save a note, create and finish a training session, and persist a settings update. They remain `[~]` until those flows have automated or realistic manual verification.

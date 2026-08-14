@@ -23,3 +23,7 @@
 - [x] Seed the approved initial skill graph from the documented taxonomy and render prerequisites; expose real problem-to-skill links as imported mappings arrive.
 - [x] Add tests for catalogue filtering, attempt lifecycle, training progression, and Codeforces sync cooldown/error boundaries.
 - [x] Reverify the API documentation, documentation index, backlog updates, and all final quality gates before checkpointing.
+- [x] Audit every completed backlog item against source code, database migrations, tests, and user-visible behavior; see `docs/operations/IMPLEMENTATION_AUDIT_2026-08-14.md`.
+- [x] Correct any backlog status that is not supported by implemented and tested evidence.
+- [x] Implement P1-206 submission history, backed by imported external verdicts and owner-scoped server queries.
+- [x] Add tests and visual verification for P1-206 submission history, then document and commit it.

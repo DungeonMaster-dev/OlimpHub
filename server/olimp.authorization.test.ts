@@ -24,4 +24,13 @@ describe("OlimpHub protected workspace", () => {
       { code: "UNAUTHORIZED" }
     );
   });
+
+  it("rejects an anonymous submission-history request", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+    await expect(
+      caller.olimp.submissions.list({ page: 0, pageSize: 25 })
+    ).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
 });

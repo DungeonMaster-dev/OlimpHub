@@ -521,6 +521,47 @@ export const olimpRouter = router({
       }),
   }),
 
+  submissions: router({
+    list: protectedProcedure
+      .input(
+        z.object({
+          verdict: z.string().trim().max(64).optional(),
+          page: z.number().int().min(0).max(1000).default(0),
+          pageSize: z.number().int().min(1).max(50).default(25),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const conditions = [eq(externalSubmissions.userId, ctx.user.id)];
+        if (input.verdict)
+          conditions.push(eq(externalSubmissions.verdict, input.verdict));
+        const [items, totals] = await Promise.all([
+          db
+            .select({ submission: externalSubmissions, problem: problems })
+            .from(externalSubmissions)
+            .leftJoin(problems, eq(externalSubmissions.problemId, problems.id))
+            .where(and(...conditions))
+            .orderBy(desc(externalSubmissions.submittedAt))
+            .limit(input.pageSize)
+            .offset(input.page * input.pageSize),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(externalSubmissions)
+            .where(and(...conditions)),
+        ]);
+        const verdicts = await db
+          .selectDistinct({ verdict: externalSubmissions.verdict })
+          .from(externalSubmissions)
+          .where(eq(externalSubmissions.userId, ctx.user.id))
+          .orderBy(asc(externalSubmissions.verdict));
+        return {
+          items,
+          total: Number(totals[0]?.count ?? 0),
+          verdicts: verdicts.map(row => row.verdict),
+        };
+      }),
+  }),
+
   workspace: router({
     start: protectedProcedure
       .input(z.object({ problemId: z.number().int().positive() }))

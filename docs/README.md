@@ -24,6 +24,7 @@ This directory contains the product and engineering documentation that should st
 ## Planned documentation
 
 - [operations/DEVELOPMENT.md](operations/DEVELOPMENT.md) — supported local and containerized development workflow.
+- [operations/IMPLEMENTATION_AUDIT_2026-08-14.md](operations/IMPLEMENTATION_AUDIT_2026-08-14.md) — evidence-based audit of completed backlog items and items returned to in-progress status.
 - `operations/DEPLOYMENT.md` — development and production deployment.
 - `operations/OBSERVABILITY.md` — logging, metrics, tracing and alerts.
 

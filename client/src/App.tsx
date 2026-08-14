@@ -9,6 +9,7 @@ import Problems from "@/pages/Problems";
 import Progress from "@/pages/Progress";
 import Settings from "@/pages/Settings";
 import Skills from "@/pages/Skills";
+import Submissions from "@/pages/Submissions";
 import Training from "@/pages/Training";
 import TrainingSession from "@/pages/TrainingSession";
 import Workspace from "@/pages/Workspace";
@@ -23,6 +24,7 @@ function Router() {
         <Route path="/problems/:id" component={Workspace} />
         <Route path="/training" component={Training} />
         <Route path="/training/:id" component={TrainingSession} />
+        <Route path="/submissions" component={Submissions} />
         <Route path="/skills" component={Skills} />
         <Route path="/progress" component={Progress} />
         <Route path="/settings" component={Settings} />
