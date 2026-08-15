@@ -101,3 +101,4 @@
 - [x] Implement P1-1004 recurring-mistake detection from repeated owner-scoped persisted evidence without inferring causes or exposing notes, source code or raw activity metadata.
 - [x] Implement P1-1005 deterministic owner-scoped problem recommendations from real catalogue and recorded learning evidence, with explicit reasons, exclusions and editable handoff.
 - [x] Implement P1-1006 dedicated owner-scoped training recommendations from persisted evidence with deterministic selection, explicit limits and editable creation handoff.
+- [ ] Audit and implement P1-1007 owner-scoped terminal contest analysis from persisted performance and autopsy evidence without rating, rank, skill or causal inference.
