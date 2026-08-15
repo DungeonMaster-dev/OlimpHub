@@ -35,9 +35,16 @@ describe("Codeforces sync failure state", () => {
     const db = {
       select: vi.fn(() => ({
         from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            limit: vi.fn(async () => mocks.limitedResults.shift() ?? []),
-          })),
+          where: vi.fn(() => {
+            const result = mocks.limitedResults.shift() ?? [];
+            return {
+              limit: vi.fn(async () => result),
+              then: (
+                resolve: (value: unknown[]) => unknown,
+                reject?: (reason: unknown) => unknown
+              ) => Promise.resolve(result).then(resolve, reject),
+            };
+          }),
         })),
       })),
       insert: vi.fn(() => ({
@@ -107,5 +114,57 @@ describe("Codeforces sync failure state", () => {
     );
     expect(mocks.inserts.at(-1)).not.toHaveProperty("cursor");
     expect(mocks.page).not.toHaveBeenCalled();
+  });
+
+  it("records a compact verdict summary after a successful public submission sync", async () => {
+    mocks.limitedResults = [
+      [
+        {
+          cursor: null,
+          lastStartedAt: new Date("2026-08-01T00:00:00.000Z"),
+        },
+      ],
+      [{ id: 7, handle: "tourist", syncConsent: "enabled" }],
+      [{ id: 9, externalKey: "1-A" }],
+    ];
+    mocks.page.mockResolvedValue({
+      status: "success",
+      observedAt: new Date(),
+      data: {
+        items: [
+          {
+            externalSubmissionId: "101",
+            externalProblemKey: "1-A",
+            verdict: "OK",
+            language: "GNU C++17",
+            submittedAt: new Date("2026-08-01T00:00:00.000Z"),
+          },
+          {
+            externalSubmissionId: "102",
+            externalProblemKey: "1-A",
+            verdict: "WRONG_ANSWER",
+            language: "GNU C++17",
+            submittedAt: new Date("2026-08-01T00:01:00.000Z"),
+          },
+        ],
+        isExhausted: true,
+      },
+    });
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.codeforces.syncSubmissions()
+    ).resolves.toMatchObject({
+      importedCount: 2,
+      verdictCounts: { OK: 1, WRONG_ANSWER: 1 },
+    });
+    expect(mocks.inserts).toContainEqual(
+      expect.objectContaining({
+        eventType: "codeforces_submissions_synced",
+        metadata: {
+          importedCount: 2,
+          verdictCounts: { OK: 1, WRONG_ANSWER: 1 },
+        },
+      })
+    );
   });
 });

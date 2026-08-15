@@ -59,3 +59,4 @@
 - [x] Add P1-601 Workspace remount lifecycle regression proving the actual page emits exactly one page-view mutation per visit.
 - [x] Re-run final P1-601 quality gates after client lifecycle coverage.
 - [x] Implement P1-602 privacy-safe note-editor focus/blur activity tracking without persisting note text in activity metadata.
+- [x] Implement P1-603 privacy-safe submission/verdict summary activity during Codeforces synchronization.

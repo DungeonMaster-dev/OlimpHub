@@ -53,6 +53,7 @@ import {
 import { summarizeSourceHealth } from "../domain/sourceHealth";
 import { buildDailyProgressTimeline } from "../domain/timeline";
 import { classifySourceSyncFailure } from "../domain/syncOutcome";
+import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
 import {
   codeforcesProfileSyncJobName,
   dailyCodeforcesProfileSyncCron,
@@ -1653,7 +1654,10 @@ export const olimpRouter = router({
         await writeActivity({
           userId: ctx.user.id,
           eventType: "codeforces_submissions_synced",
-          metadata: { importedCount: records.length },
+          metadata: {
+            importedCount: records.length,
+            verdictCounts: summarizeSubmissionVerdicts(submissions),
+          },
         });
         const nextCursor = nextSubmissionCursor(sync.cursor, submissions);
         const newSinceCursor = submissions.length;
@@ -1663,6 +1667,7 @@ export const olimpRouter = router({
           newSinceCursor,
           handle: link.handle,
           scannedPages: collected.data.scannedPages,
+          verdictCounts: summarizeSubmissionVerdicts(submissions),
         };
       } catch (error) {
         await finishCodeforcesSync(db, scopeKey, error);
