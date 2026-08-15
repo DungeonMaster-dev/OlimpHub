@@ -54,6 +54,7 @@ import { summarizeSourceHealth } from "../domain/sourceHealth";
 import { buildDailyProgressTimeline } from "../domain/timeline";
 import { classifySourceSyncFailure } from "../domain/syncOutcome";
 import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
+import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
   codeforcesProfileSyncJobName,
   dailyCodeforcesProfileSyncCron,
@@ -1135,6 +1136,29 @@ export const olimpRouter = router({
             completedAt: nextStatus === "completed" ? new Date() : null,
           })
           .where(eq(trainingItems.id, item.id));
+        await writeActivity({
+          userId: ctx.user.id,
+          problemId: item.problemId,
+          eventType: `training_item_${nextStatus}`,
+          metadata: { sessionId: session.id, itemId: item.id },
+        });
+        const sessionItems = await db
+          .select({ status: trainingItems.status })
+          .from(trainingItems)
+          .where(eq(trainingItems.sessionId, session.id));
+        if (
+          isTrainingSessionComplete(sessionItems.map(entry => entry.status))
+        ) {
+          await db
+            .update(trainingSessions)
+            .set({ status: "completed", completedAt: new Date() })
+            .where(eq(trainingSessions.id, session.id));
+          await writeActivity({
+            userId: ctx.user.id,
+            eventType: "training_completed",
+            metadata: { sessionId: session.id, itemCount: sessionItems.length },
+          });
+        }
         return { success: true };
       }),
   }),

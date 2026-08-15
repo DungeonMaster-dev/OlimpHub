@@ -113,7 +113,7 @@
 - [x] P1-602 Track editor activity. Private note-editor focus/blur facts are owner-scoped, metadata-only and suppressed by minimal tracking; server and actual Workspace UI regressions prove the lifecycle and final quality gates pass.
 - [x] P1-603 Track submissions and verdict events. Codeforces sync records one compact verdict-count summary rather than per-submission activity events; domain and router regressions pass with final quality gates.
 - [x] P1-604 Track hints/editorial interactions. Progressive hint release records an owner-scoped level-only activity fact and never copies hint content into metadata; privacy regression and final quality gates pass.
-- [ ] P1-605 Track training and contest sessions.
+- [~] P1-605 Track training and contest sessions. Training creation records a compact start fact; terminal item changes record owner-scoped factual activity and close the session once every item is completed or skipped. Contest-session tracking remains pending until P1-208 supplies a real contest lifecycle to track.
 - [ ] P1-606 Distinguish active/focused/idle time.
 - [ ] P1-607 Implement activity timeline.
 - [ ] P1-608 Implement daily/weekly/monthly statistics.

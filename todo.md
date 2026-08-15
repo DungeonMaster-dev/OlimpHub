@@ -61,3 +61,5 @@
 - [x] Implement P1-602 privacy-safe note-editor focus/blur activity tracking without persisting note text in activity metadata.
 - [x] Implement P1-603 privacy-safe submission/verdict summary activity during Codeforces synchronization.
 - [x] Complete P1-604 privacy-safe progressive hint interaction tracking without storing hint content in activity facts.
+- [x] Implement P1-605 training-session portion: owner-scoped item/session completion activity with compact metadata and regressions.
+- [ ] Complete P1-605 contest-session activity tracking after P1-208 introduces a real contest lifecycle.
