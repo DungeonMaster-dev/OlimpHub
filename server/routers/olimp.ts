@@ -21,6 +21,7 @@ import { summarizeContestPerformance } from "@shared/contestPerformance";
 import { buildContestReplay } from "@shared/contestReplay";
 import {
   activityEvents,
+  aiObservabilityEvents,
   codeforcesLinks,
   codeforcesRatingChanges,
   contestItems,
@@ -46,6 +47,7 @@ import {
 } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { generateStructured } from "../ai/modelProvider";
+import { recordAiObservability } from "../ai/observability";
 import { buildStructuredUserContext } from "../ai/userContext";
 import { buildFactualProgressAnalysis } from "../domain/progressAnalysis";
 import {
@@ -882,6 +884,23 @@ export const olimpRouter = router({
           })),
         };
       }),
+    observability: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      return db
+        .select({
+          operation: aiObservabilityEvents.operation,
+          model: aiObservabilityEvents.model,
+          outcome: aiObservabilityEvents.outcome,
+          latencyMs: aiObservabilityEvents.latencyMs,
+          costMicrounits: aiObservabilityEvents.costMicrounits,
+          errorCode: aiObservabilityEvents.errorCode,
+          occurredAt: aiObservabilityEvents.occurredAt,
+        })
+        .from(aiObservabilityEvents)
+        .where(eq(aiObservabilityEvents.userId, ctx.user.id))
+        .orderBy(desc(aiObservabilityEvents.occurredAt))
+        .limit(20);
+    }),
   }),
   sourceHealth: router({
     list: adminProcedure.query(async () => {
@@ -1910,61 +1929,96 @@ export const olimpRouter = router({
             selectionReason: selection.reason,
           };
         });
-        const { content } = await generateStructured({
-          preferredModelIds: ["claude-haiku-4-5", "gpt-5-mini"],
-          maxTokens: 1200,
-          messages: [
-            {
-              role: "system",
-              content:
-                "Generate an editable private programming contest proposal. Use only supplied candidate IDs. Do not mention or infer user identity, private notes, attempts, ratings, rankings or performance. Return the required JSON object only.",
-            },
-            {
-              role: "user",
-              content: JSON.stringify({
-                requestedProblemCount: input.count,
-                allowedDurationMinutes: {
-                  minimum: minimumContestDurationMinutes,
-                  maximum: maximumContestDurationMinutes,
-                },
-                candidates: eligible,
-              }),
-            },
-          ],
-          outputSchema: {
-            name: "ai_contest_proposal",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                durationMinutes: { type: "integer" },
-                problemIds: {
-                  type: "array",
-                  items: { type: "integer" },
-                },
-                rationale: { type: "string" },
+        const aiStartedAt = Date.now();
+        let content: string;
+        let model: string;
+        try {
+          const generated = await generateStructured({
+            preferredModelIds: ["claude-haiku-4-5", "gpt-5-mini"],
+            maxTokens: 1200,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Generate an editable private programming contest proposal. Use only supplied candidate IDs. Do not mention or infer user identity, private notes, attempts, ratings, rankings or performance. Return the required JSON object only.",
               },
-              required: ["title", "durationMinutes", "problemIds", "rationale"],
-              additionalProperties: false,
+              {
+                role: "user",
+                content: JSON.stringify({
+                  requestedProblemCount: input.count,
+                  allowedDurationMinutes: {
+                    minimum: minimumContestDurationMinutes,
+                    maximum: maximumContestDurationMinutes,
+                  },
+                  candidates: eligible,
+                }),
+              },
+            ],
+            outputSchema: {
+              name: "ai_contest_proposal",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  durationMinutes: { type: "integer" },
+                  problemIds: { type: "array", items: { type: "integer" } },
+                  rationale: { type: "string" },
+                },
+                required: [
+                  "title",
+                  "durationMinutes",
+                  "problemIds",
+                  "rationale",
+                ],
+                additionalProperties: false,
+              },
             },
-          },
-        });
+          });
+          content = generated.content;
+          model = generated.model;
+        } catch (error) {
+          void recordAiObservability({
+            userId: ctx.user.id,
+            operation: "contest_draft",
+            outcome: "failed",
+            latencyMs: Date.now() - aiStartedAt,
+            errorCode: error instanceof Error ? error.name : "unknown_error",
+          });
+          throw error;
+        }
         let json: unknown;
         try {
           json = JSON.parse(content);
         } catch {
+          void recordAiObservability({
+            userId: ctx.user.id,
+            operation: "contest_draft",
+            model,
+            outcome: "failed",
+            latencyMs: Date.now() - aiStartedAt,
+            errorCode: "invalid_json",
+          });
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "AI contest generation returned invalid JSON.",
           });
         }
         const parsed = aiContestProposalSchema.safeParse(json);
-        if (!parsed.success)
+        if (!parsed.success) {
+          void recordAiObservability({
+            userId: ctx.user.id,
+            operation: "contest_draft",
+            model,
+            outcome: "failed",
+            latencyMs: Date.now() - aiStartedAt,
+            errorCode: "invalid_proposal",
+          });
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "AI contest generation returned an invalid proposal.",
           });
+        }
         if (
           parsed.data.problemIds.length !== input.count ||
           new Set(parsed.data.problemIds).size !==
@@ -1974,11 +2028,27 @@ export const olimpRouter = router({
               !problemById.has(problemId) ||
               !selected.some(item => item.problemId === problemId)
           )
-        )
+        ) {
+          void recordAiObservability({
+            userId: ctx.user.id,
+            operation: "contest_draft",
+            model,
+            outcome: "failed",
+            latencyMs: Date.now() - aiStartedAt,
+            errorCode: "unavailable_problem",
+          });
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "AI contest generation selected unavailable problems.",
           });
+        }
+        void recordAiObservability({
+          userId: ctx.user.id,
+          operation: "contest_draft",
+          model,
+          outcome: "succeeded",
+          latencyMs: Date.now() - aiStartedAt,
+        });
         return { proposal: parsed.data };
       }),
     suggest: protectedProcedure

@@ -85,6 +85,52 @@ export function AIContextPreview({
   );
 }
 
+export function AIObservabilityPreview() {
+  const observability = trpc.olimp.ai.observability.useQuery();
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">AI OPERATIONS</p>
+          <h3>Private operational metadata</h3>
+        </div>
+        <Database className="h-4 w-4 text-violet-200" />
+      </div>
+      {observability.isLoading ? (
+        <div className="mt-4 h-16 animate-pulse rounded-xl bg-white/[.04]" />
+      ) : observability.error ? (
+        <p className="mt-3 text-xs leading-5 text-rose-200" role="alert">
+          AI operation metadata is unavailable.
+        </p>
+      ) : observability.data?.length ? (
+        <div className="mt-4 space-y-2">
+          {observability.data.slice(0, 3).map((event, index) => (
+            <div
+              key={`${event.operation}-${event.occurredAt.getTime()}-${index}`}
+              className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] p-3 text-xs"
+            >
+              <span className="min-w-0 truncate text-slate-300">
+                {event.operation} · {event.outcome}
+              </span>
+              <span className="font-mono text-slate-500">
+                {event.latencyMs} ms
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          No recorded AI operations yet.
+        </p>
+      )}
+      <p className="mt-4 text-xs leading-5 text-slate-500">
+        Stores operation, model, outcome, latency and provider-reported cost
+        when available. It never stores prompts or responses.
+      </p>
+    </section>
+  );
+}
+
 function normalizeRetentionDays(value: number): 30 | 90 | 365 {
   return value === 30 || value === 365 ? value : 90;
 }
@@ -273,6 +319,7 @@ function SettingsForm({
           loading={aiContextLoading}
           error={aiContextError}
         />
+        <AIObservabilityPreview />
         <section className="panel">
           <div className="panel-head">
             <div>

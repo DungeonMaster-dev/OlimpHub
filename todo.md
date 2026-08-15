@@ -104,3 +104,4 @@
 - [x] Audit and implement P1-1007 owner-scoped terminal contest analysis from persisted performance and autopsy evidence without rating, rank, skill or causal inference.
 - [x] Implement P1-1008 replay-only progressive guidance bounded by the server-enforced hint level, without generating new hint or solution content.
 - [x] Implement P1-1009 server-side learning-mode solution-leakage guard that detects or sanitizes overly detailed stored hint content before it reaches progressive guidance.
+- [x] Add dedicated P1-1010 owner-scoped protected observability-summary and Settings preview regressions, then rerun full verification before marking privacy-safe AI observability complete.

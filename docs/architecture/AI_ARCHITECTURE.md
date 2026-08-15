@@ -203,3 +203,7 @@ The P1-1009 conservative learning-mode leakage guard is specified in
 [AI_LEAKAGE_GUARD.md](./AI_LEAKAGE_GUARD.md). It withholds solution-like
 revealed content from the guidance recap without altering the approved reveal
 record.
+
+The P1-1010 privacy-safe operation metadata boundary is specified in
+[AI_OBSERVABILITY.md](./AI_OBSERVABILITY.md). It records no prompt or response
+content and treats unavailable provider cost information as unknown.

@@ -758,6 +758,30 @@ export const sourceSyncStates = mysqlTable(
   ]
 );
 
+export const aiObservabilityEvents = mysqlTable(
+  "ai_observability_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    operation: varchar("operation", { length: 96 }).notNull(),
+    model: varchar("model", { length: 128 }),
+    outcome: mysqlEnum("outcome", ["succeeded", "failed"]).notNull(),
+    latencyMs: int("latencyMs").notNull(),
+    costMicrounits: int("costMicrounits"),
+    errorCode: varchar("errorCode", { length: 96 }),
+    occurredAt: timestamp("occurredAt").defaultNow().notNull(),
+  },
+  table => [
+    index("ai_observability_user_occurred_idx").on(
+      table.userId,
+      table.occurredAt
+    ),
+    index("ai_observability_operation_idx").on(table.operation),
+  ]
+);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Problem = typeof problems.$inferSelect;
