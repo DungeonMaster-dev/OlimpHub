@@ -6,6 +6,7 @@ import { Empty, ErrorState } from "./Home";
 
 export default function Training() {
   const sessions = trpc.olimp.training.list.useQuery();
+  const adaptive = trpc.olimp.training.adaptive.useQuery({ count: 4 });
   const catalogue = trpc.olimp.catalogue.list.useQuery({
     page: 0,
     pageSize: 8,
@@ -42,6 +43,48 @@ export default function Training() {
             </div>
             <ListPlus className="h-4 w-4 text-indigo-200" />
           </div>
+          {adaptive.data?.recommendations.length ? (
+            <div className="mb-5 rounded-xl border border-indigo-300/15 bg-indigo-300/[.04] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="eyebrow text-indigo-200">ADAPTIVE START</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                    Based only on your unfinished progress and currently active
+                    sessions.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-indigo-200 hover:text-white"
+                  onClick={() => {
+                    setTitle("Adaptive practice");
+                    setSelected(
+                      adaptive.data!.recommendations.map(
+                        recommendation => recommendation.problem.id
+                      )
+                    );
+                  }}
+                >
+                  Use suggestions
+                </button>
+              </div>
+              <ul className="mt-3 space-y-2">
+                {adaptive.data.recommendations.map(recommendation => (
+                  <li
+                    key={recommendation.problem.id}
+                    className="flex items-start justify-between gap-3 text-xs"
+                  >
+                    <span className="min-w-0 text-slate-300">
+                      {recommendation.problem.title}
+                    </span>
+                    <span className="max-w-48 text-right leading-5 text-slate-500">
+                      {recommendation.reason}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <input
             className="input-dark"
             value={title}

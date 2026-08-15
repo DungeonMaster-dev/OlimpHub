@@ -134,7 +134,7 @@
 # Phase 8 — Training Engine
 
 - [x] P1-801 Implement manual training creation. The protected Training UI creates a focused ordered session from selected imported problems; persistence is owner-scoped, the first item is active, remaining items are queued, unavailable selections are rejected before any session write and a repeated UUID request replays its original result without duplication. Automated UI, owner-context protected-router create-to-detail continuity and anonymous-access regressions validate the workflow without altering production OAuth; 103 tests and all quality gates pass.
-- [ ] P1-802 Implement adaptive problem selection.
+- [x] P1-802 Implement adaptive problem selection. `adaptive-training-v1` deterministically ranks only owner-scoped unfinished progress, excludes solved/skipped/archived and active-training duplicates, and falls back to available catalogue problems only when personal evidence is insufficient. Training displays factual `recent_attempt`, `goal_alignment` or `insufficient_data` reasons before users apply the editable suggested set. Domain, protected-router, anonymous-access and automated UI regressions pass; the full quality suite has 108 tests.
 - [ ] P1-803 Account for weak skills and recent exposure.
 - [ ] P1-804 Estimate expected solve time.
 - [ ] P1-805 Implement training session lifecycle.

@@ -4,6 +4,10 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  adaptiveRecommendations: [] as Array<{
+    problem: { id: number; title: string; difficulty: number | null };
+    reason: string;
+  }>,
   catalogueQuery: vi.fn(),
   create: vi.fn(),
   invalidate: vi.fn(),
@@ -33,6 +37,11 @@ vi.mock("@/lib/trpc", () => ({
         },
       },
       training: {
+        adaptive: {
+          useQuery: () => ({
+            data: { recommendations: mocks.adaptiveRecommendations },
+          }),
+        },
         list: {
           useQuery: () => ({
             data: mocks.sessions,
@@ -58,6 +67,7 @@ import Training from "../client/src/pages/Training";
 
 describe("manual training creation UI", () => {
   beforeEach(() => {
+    mocks.adaptiveRecommendations = [];
     mocks.catalogueQuery.mockReset();
     mocks.catalogueQuery.mockReturnValue({
       data: {
@@ -126,5 +136,42 @@ describe("manual training creation UI", () => {
         }) as HTMLAnchorElement
       ).getAttribute("href")
     ).toBe("/training/701");
+  });
+
+  it("lets a user review adaptive reasons and apply the suggested imported problems before creating a session", async () => {
+    mocks.adaptiveRecommendations = [
+      {
+        problem: { id: 8, title: "Two Sum", difficulty: 800 },
+        reason:
+          "Prioritized because your personal progress still has an unfinished attempt.",
+      },
+      {
+        problem: { id: 13, title: "Graph traversal", difficulty: 1200 },
+        reason:
+          "Prioritized because you explicitly marked this problem for practice.",
+      },
+    ];
+    const screen = render(<Training />);
+
+    expect(
+      screen.getByText(
+        "Prioritized because your personal progress still has an unfinished attempt."
+      )
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Use suggestions" }));
+
+    expect(screen.getByDisplayValue("Adaptive practice")).toBeTruthy();
+    for (const checkbox of screen.getAllByRole("checkbox")) {
+      expect((checkbox as HTMLInputElement).checked).toBe(true);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Create session" }));
+
+    await waitFor(() =>
+      expect(mocks.create).toHaveBeenCalledWith({
+        title: "Adaptive practice",
+        problemIds: [8, 13],
+        requestId: "e2661a3e-ef4d-4f8a-9fcd-3dc54ab73e04",
+      })
+    );
   });
 });

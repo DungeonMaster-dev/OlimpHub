@@ -60,6 +60,10 @@ import { classifySourceSyncFailure } from "../domain/syncOutcome";
 import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
 import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
+  adaptiveTrainingCalculationVersion,
+  selectAdaptiveTrainingProblems,
+} from "../domain/adaptiveTraining";
+import {
   buildSkillMasteryReasons,
   calculateSkillMastery,
   minimumIndependentSolvedProblems,
@@ -1040,6 +1044,73 @@ export const olimpRouter = router({
   }),
 
   training: router({
+    adaptive: protectedProcedure
+      .input(z.object({ count: z.number().int().min(1).max(8).default(4) }))
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const candidates = await db
+          .select()
+          .from(problems)
+          .orderBy(asc(problems.difficulty), asc(problems.id))
+          .limit(120);
+        if (!candidates.length) {
+          return {
+            calculationVersion: adaptiveTrainingCalculationVersion,
+            recommendations: [],
+          };
+        }
+        const candidateIds = candidates.map(problem => problem.id);
+        const [progressRows, activeTrainingRows] = await Promise.all([
+          db
+            .select()
+            .from(userProblemProgress)
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                inArray(userProblemProgress.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ problemId: trainingItems.problemId })
+            .from(trainingItems)
+            .innerJoin(
+              trainingSessions,
+              eq(trainingItems.sessionId, trainingSessions.id)
+            )
+            .where(
+              and(
+                eq(trainingSessions.userId, ctx.user.id),
+                eq(trainingSessions.status, "active"),
+                inArray(trainingItems.status, ["active", "queued"])
+              )
+            ),
+        ]);
+        const progressByProblem = new Map(
+          progressRows.map(progress => [progress.problemId, progress.status])
+        );
+        const activeTrainingProblemIds = new Set(
+          activeTrainingRows.map(item => item.problemId)
+        );
+        const selected = selectAdaptiveTrainingProblems(
+          candidates.map(problem => ({
+            problemId: problem.id,
+            difficulty: problem.difficulty,
+            progressStatus: progressByProblem.get(problem.id) ?? null,
+            isInActiveTraining: activeTrainingProblemIds.has(problem.id),
+          })),
+          input.count
+        );
+        const problemById = new Map(
+          candidates.map(problem => [problem.id, problem])
+        );
+        return {
+          calculationVersion: adaptiveTrainingCalculationVersion,
+          recommendations: selected.map(recommendation => ({
+            problem: problemById.get(recommendation.problemId)!,
+            ...recommendation,
+          })),
+        };
+      }),
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await requireDb();
       return db
