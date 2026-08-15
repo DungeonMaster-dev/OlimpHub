@@ -109,7 +109,7 @@
 
 # Phase 6 — Activity & Time Tracking
 
-- [ ] P1-601 Track task-page activity.
+- [x] P1-601 Track task-page activity. An owner-scoped task-page event respects the minimal tracking preference and stores no solution content; router idempotency coverage and a real jsdom Workspace remount regression prove one emission per visit. Final quality gates pass.
 - [ ] P1-602 Track editor activity.
 - [ ] P1-603 Track submissions and verdict events.
 - [ ] P1-604 Track hints/editorial interactions.

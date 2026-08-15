@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useRoute } from "wouter";
+import React, { useEffect } from "react";
 import {
   ArrowLeft,
   Check,
@@ -24,6 +25,8 @@ export default function Workspace() {
   const start = trpc.olimp.workspace.start.useMutation({
     onSuccess: () => utils.olimp.catalogue.detail.invalidate({ problemId }),
   });
+  const { mutate: recordPageActivity } =
+    trpc.olimp.workspace.recordPageActivity.useMutation();
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const [editedNote, setEditedNote] = useState<string | null>(null);
   const [hint, setHint] = useState<{ level: number; content: string } | null>(
@@ -46,6 +49,14 @@ export default function Workspace() {
   const nextHint = trpc.olimp.workspace.nextHint.useMutation({
     onSuccess: data => setHint(data),
   });
+  useEffect(() => {
+    const loadedProblemId = detail.data?.problem.id;
+    if (!loadedProblemId) return;
+    recordPageActivity({
+      problemId: loadedProblemId,
+      clientEventId: crypto.randomUUID(),
+    });
+  }, [detail.data?.problem.id, recordPageActivity]);
   if (detail.isLoading)
     return <div className="h-64 animate-pulse rounded-3xl bg-white/[.04]" />;
   if (detail.error || !detail.data)

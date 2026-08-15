@@ -54,3 +54,7 @@
 - [x] Add P1-407 local-cooldown regression proving durable rate-limited state preserves the existing cursor.
 - [x] Verify documented user-visible outcomes for retryable failure and rate-limit states before final P1-407 completion.
 - [x] Complete P1-408 system-level synchronization test matrix for handle linking, rating import, submissions, failure recovery and daily scheduled callback.
+- [x] Implement P1-601 privacy-safe owner-scoped task-page activity tracking with lifecycle and deduplication regressions.
+- [x] Add P1-601 idempotency regression proving repeated clientEventId records one page-view fact.
+- [x] Add P1-601 Workspace remount lifecycle regression proving the actual page emits exactly one page-view mutation per visit.
+- [x] Re-run final P1-601 quality gates after client lifecycle coverage.
