@@ -7,11 +7,17 @@ export default function Contests() {
   const [title, setTitle] = useState("Virtual contest");
   const [selected, setSelected] = useState<number[]>([]);
   const [durationMinutes, setDurationMinutes] = useState(120);
+  const [aiProposal, setAiProposal] = useState<{
+    title: string;
+    durationMinutes: number;
+    problemIds: number[];
+    rationale: string;
+  } | null>(null);
   const utils = trpc.useUtils();
   const suggestionInput = useMemo(() => ({ count: 4 }), []);
   const catalogue = trpc.olimp.catalogue.list.useQuery({
     page: 0,
-    pageSize: 8,
+    pageSize: 24,
   });
   const suggestions = trpc.olimp.contests.suggest.useQuery(suggestionInput);
   const contests = trpc.olimp.contests.list.useQuery();
@@ -23,6 +29,9 @@ export default function Contests() {
   });
   const start = trpc.olimp.contests.start.useMutation({
     onSuccess: () => utils.olimp.contests.list.invalidate(),
+  });
+  const aiDraft = trpc.olimp.contests.aiDraft.useMutation({
+    onSuccess: response => setAiProposal(response.proposal),
   });
 
   return (
@@ -67,6 +76,61 @@ export default function Contests() {
               <option value={240}>240 minutes</option>
             </select>
           </label>
+          <div className="mt-5 rounded-2xl border border-violet-200/15 bg-violet-200/[.035] p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="eyebrow text-violet-200">AI DRAFT</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Generates an editable proposal from eligible public catalogue
+                  facts and saved progress categories only.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="quiet-button shrink-0 text-xs"
+                disabled={aiDraft.isPending}
+                onClick={() => aiDraft.mutate({ count: 4 })}
+              >
+                {aiDraft.isPending ? "Generating…" : "Generate AI draft"}
+              </button>
+            </div>
+            {aiProposal ? (
+              <div className="mt-4 border-t border-violet-100/10 pt-4">
+                <p className="text-sm font-medium text-slate-200">
+                  {aiProposal.title}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {aiProposal.durationMinutes} minutes ·{" "}
+                  {aiProposal.problemIds.length} problems
+                </p>
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                  {aiProposal.rationale}
+                </p>
+                <button
+                  type="button"
+                  className="quiet-button mt-3 text-xs"
+                  onClick={() => {
+                    setTitle(aiProposal.title);
+                    setDurationMinutes(aiProposal.durationMinutes);
+                    setSelected(aiProposal.problemIds);
+                  }}
+                >
+                  Apply draft to form
+                </button>
+              </div>
+            ) : null}
+            {aiDraft.isError ? (
+              <p
+                className="mt-3 rounded-xl border border-rose-200/15 bg-rose-200/[.04] px-3 py-2 text-xs leading-5 text-rose-100"
+                role="alert"
+              >
+                {aiDraft.error?.message ===
+                "Not enough eligible catalogue problems for this draft."
+                  ? "There are not enough eligible catalogue problems for this AI draft. Update your selection or complete an active contest, then try again."
+                  : "AI draft generation could not produce a valid proposal. Your contest has not been created; try again or use the editable suggested set."}
+              </p>
+            ) : null}
+          </div>
           <div className="mt-5 rounded-2xl border border-white/[.06] bg-white/[.02] p-4">
             <div className="flex items-center justify-between gap-4">
               <div>

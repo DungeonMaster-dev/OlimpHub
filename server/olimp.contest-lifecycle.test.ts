@@ -6,9 +6,11 @@ const mocks = vi.hoisted(() => ({
   selectResults: [] as unknown[][],
   updates: [] as Array<Record<string, unknown>>,
   writes: [] as Array<Record<string, unknown>>,
+  invokeLLM: vi.fn(),
 }));
 
 vi.mock("./db", () => ({ getDb: mocks.getDb }));
+vi.mock("./_core/llm", () => ({ invokeLLM: mocks.invokeLLM }));
 
 import { appRouter } from "./routers";
 
@@ -134,6 +136,99 @@ describe("virtual contest lifecycle", () => {
         },
       ],
     });
+  });
+
+  it("generates an editable AI draft only from protected eligible catalogue facts", async () => {
+    mocks.selectResults = [
+      [
+        { id: 2, difficulty: 1500, title: "Paused graph", tags: ["graphs"] },
+        { id: 4, difficulty: 1000, title: "Catalogue DP", tags: ["dp"] },
+        { id: 5, difficulty: 1200, title: "Manual extra", tags: ["math"] },
+      ],
+      [{ problemId: 2, status: "paused" }],
+      [],
+    ];
+    mocks.invokeLLM.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              title: "Focused graph and DP",
+              durationMinutes: 120,
+              problemIds: [2, 4],
+              rationale:
+                "Starts with unfinished graph work, followed by a lighter dynamic programming problem.",
+            }),
+          },
+        },
+      ],
+    });
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.contests.aiDraft({ count: 2 })
+    ).resolves.toEqual({
+      proposal: {
+        title: "Focused graph and DP",
+        durationMinutes: 120,
+        problemIds: [2, 4],
+        rationale:
+          "Starts with unfinished graph work, followed by a lighter dynamic programming problem.",
+      },
+    });
+
+    const invocation = mocks.invokeLLM.mock.calls[0]?.[0] as {
+      messages: Array<{ content: string }>;
+    };
+    expect(invocation.messages[1]?.content).toContain("Paused graph");
+    expect(invocation.messages[1]?.content).not.toContain("Private note");
+    expect(invocation.messages[1]?.content).not.toContain("user-1");
+  });
+
+  it("rejects an AI draft that includes an ID outside the protected eligible set", async () => {
+    mocks.selectResults = [
+      [
+        { id: 2, difficulty: 1500, title: "Paused graph", tags: ["graphs"] },
+        { id: 4, difficulty: 1000, title: "Catalogue DP", tags: ["dp"] },
+      ],
+      [],
+      [],
+    ];
+    mocks.invokeLLM.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              title: "Invalid selection",
+              durationMinutes: 120,
+              problemIds: [2, 999],
+              rationale: "Invalid ID should not be accepted.",
+            }),
+          },
+        },
+      ],
+    });
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.contests.aiDraft({ count: 2 })
+    ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+  });
+
+  it("rejects malformed structured-model JSON without exposing a parser failure", async () => {
+    mocks.selectResults = [
+      [
+        { id: 2, difficulty: 1500, title: "Paused graph", tags: ["graphs"] },
+        { id: 4, difficulty: 1000, title: "Catalogue DP", tags: ["dp"] },
+      ],
+      [],
+      [],
+    ];
+    mocks.invokeLLM.mockResolvedValue({
+      choices: [{ message: { content: "not-json" } }],
+    });
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.contests.aiDraft({ count: 2 })
+    ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
   });
 
   it("starts only an owned draft and server-activates its first queued problem", async () => {

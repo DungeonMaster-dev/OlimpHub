@@ -90,3 +90,5 @@
 - [x] Implement P1-902 durable owner-scoped contest timer with server-derived remaining time, immutable start boundary, explicit expiration state and no scoring inference.
 - [x] Implement P1-903 factual contest score and elapsed-time penalty projection using only persisted completion timestamps and explicit policy constants.
 - [x] Implement P1-904 deterministic, explainable contest problem selection with protected owner-scoped eligibility and editable creation handoff.
+- [x] Implement P1-905 AI-generated personalized contest draft using a server-side structured model call over protected eligible catalogue facts only.
+- [x] Add user-visible P1-905 AI draft error feedback and regression coverage for model, validation and insufficient-eligible-problem failures.

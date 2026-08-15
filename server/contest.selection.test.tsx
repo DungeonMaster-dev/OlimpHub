@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   invalidate: vi.fn(),
+  aiDraft: vi.fn(),
+  aiDraftFailure: false,
 }));
 
 vi.mock("wouter", () => ({
@@ -61,6 +63,38 @@ vi.mock("@/lib/trpc", () => ({
             mutate: mocks.create,
           }),
         },
+        aiDraft: {
+          useMutation: (options: {
+            onSuccess: (response: {
+              proposal: {
+                title: string;
+                durationMinutes: number;
+                problemIds: number[];
+                rationale: string;
+              };
+            }) => void;
+          }) => ({
+            isPending: false,
+            isError: mocks.aiDraftFailure,
+            error: mocks.aiDraftFailure
+              ? {
+                  message:
+                    "Not enough eligible catalogue problems for this draft.",
+                }
+              : null,
+            mutate: () => {
+              mocks.aiDraft();
+              options.onSuccess({
+                proposal: {
+                  title: "Focused graph and DP",
+                  durationMinutes: 120,
+                  problemIds: [2, 4],
+                  rationale: "A public-catalogue-only proposal.",
+                },
+              });
+            },
+          }),
+        },
         start: { useMutation: () => ({ isPending: false, mutate: vi.fn() }) },
       },
     },
@@ -74,6 +108,8 @@ describe("contest selection UI", () => {
     cleanup();
     mocks.create.mockReset();
     mocks.invalidate.mockReset();
+    mocks.aiDraft.mockReset();
+    mocks.aiDraftFailure = false;
   });
 
   it("copies protected suggestions into the editable catalogue form only after explicit action", () => {
@@ -89,6 +125,38 @@ describe("contest selection UI", () => {
     expect(checkboxes[0]!.checked).toBe(true);
     expect(checkboxes[1]!.checked).toBe(true);
     expect(checkboxes[2]!.checked).toBe(false);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("applies a generated AI draft to editable form fields only after explicit confirmation", () => {
+    const screen = render(<Contests />);
+    const checkboxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+
+    fireEvent.click(screen.getByRole("button", { name: "Generate AI draft" }));
+
+    expect(mocks.aiDraft).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Focused graph and DP")).toBeTruthy();
+    expect(checkboxes[0]!.checked).toBe(false);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Apply draft to form" })
+    );
+
+    expect(
+      (screen.getByLabelText("Contest title") as HTMLInputElement).value
+    ).toBe("Focused graph and DP");
+    expect(checkboxes[0]!.checked).toBe(true);
+    expect(checkboxes[1]!.checked).toBe(true);
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it("shows an actionable AI draft failure without creating a contest", () => {
+    mocks.aiDraftFailure = true;
+    const screen = render(<Contests />);
+
+    expect(screen.getByRole("alert").textContent).toContain(
+      "not enough eligible catalogue problems"
+    );
     expect(mocks.create).not.toHaveBeenCalled();
   });
 });

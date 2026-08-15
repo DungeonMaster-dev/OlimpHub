@@ -31,6 +31,7 @@ import {
   userSettings,
 } from "../../drizzle/schema";
 import { getDb } from "../db";
+import { invokeLLM } from "../_core/llm";
 import { createHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
@@ -123,6 +124,16 @@ const attemptStateSchema = z.enum([
 ]);
 const outcomeSchema = z.enum(["solved", "not_solved", "partial", "unknown"]);
 const periodSchema = z.union([z.literal(7), z.literal(30), z.literal(90)]);
+const aiContestProposalSchema = z.object({
+  title: z.string().trim().min(3).max(180),
+  durationMinutes: z
+    .number()
+    .int()
+    .min(minimumContestDurationMinutes)
+    .max(maximumContestDurationMinutes),
+  problemIds: z.array(z.number().int().positive()).min(1).max(8),
+  rationale: z.string().trim().min(1).max(500),
+});
 
 async function requireDb() {
   const db = await getDb();
@@ -1425,6 +1436,151 @@ export const olimpRouter = router({
   }),
 
   contests: router({
+    aiDraft: protectedProcedure
+      .input(z.object({ count: z.number().int().min(1).max(8).default(4) }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const candidates = await db
+          .select()
+          .from(problems)
+          .orderBy(asc(problems.difficulty), asc(problems.id))
+          .limit(24);
+        const candidateIds = candidates.map(problem => problem.id);
+        const [progressRows, activeContestRows] = await Promise.all([
+          db
+            .select()
+            .from(userProblemProgress)
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                inArray(userProblemProgress.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ problemId: contestItems.problemId })
+            .from(contestItems)
+            .innerJoin(
+              contestSessions,
+              eq(contestItems.sessionId, contestSessions.id)
+            )
+            .where(
+              and(
+                eq(contestSessions.userId, ctx.user.id),
+                eq(contestSessions.status, "active"),
+                inArray(contestItems.problemId, candidateIds)
+              )
+            ),
+        ]);
+        const progressByProblem = new Map(
+          progressRows.map(progress => [progress.problemId, progress.status])
+        );
+        const activeContestProblemIds = new Set(
+          activeContestRows.map(item => item.problemId)
+        );
+        const selected = selectContestProblems(
+          candidates.map(problem => ({
+            problemId: problem.id,
+            difficulty: problem.difficulty,
+            progressStatus: progressByProblem.get(problem.id) ?? null,
+            isInActiveContest: activeContestProblemIds.has(problem.id),
+          })),
+          8
+        );
+        if (selected.length < input.count)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Not enough eligible catalogue problems for this draft.",
+          });
+        const problemById = new Map(
+          candidates.map(problem => [problem.id, problem])
+        );
+        const eligible = selected.map(selection => {
+          const problem = problemById.get(selection.problemId)!;
+          return {
+            id: problem.id,
+            title: problem.title,
+            difficulty: problem.difficulty,
+            tags: problem.tags,
+            selectionReason: selection.reason,
+          };
+        });
+        const response = await invokeLLM({
+          model: "claude-haiku-4-5",
+          maxTokens: 1200,
+          messages: [
+            {
+              role: "system",
+              content:
+                "Generate an editable private programming contest proposal. Use only supplied candidate IDs. Do not mention or infer user identity, private notes, attempts, ratings, rankings or performance. Return the required JSON object only.",
+            },
+            {
+              role: "user",
+              content: JSON.stringify({
+                requestedProblemCount: input.count,
+                allowedDurationMinutes: {
+                  minimum: minimumContestDurationMinutes,
+                  maximum: maximumContestDurationMinutes,
+                },
+                candidates: eligible,
+              }),
+            },
+          ],
+          outputSchema: {
+            name: "ai_contest_proposal",
+            strict: true,
+            schema: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                durationMinutes: { type: "integer" },
+                problemIds: {
+                  type: "array",
+                  items: { type: "integer" },
+                },
+                rationale: { type: "string" },
+              },
+              required: ["title", "durationMinutes", "problemIds", "rationale"],
+              additionalProperties: false,
+            },
+          },
+        });
+        const content = response.choices[0]?.message.content;
+        if (typeof content !== "string")
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "AI contest generation returned no structured proposal.",
+          });
+        let json: unknown;
+        try {
+          json = JSON.parse(content);
+        } catch {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "AI contest generation returned invalid JSON.",
+          });
+        }
+        const parsed = aiContestProposalSchema.safeParse(json);
+        if (!parsed.success)
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "AI contest generation returned an invalid proposal.",
+          });
+        if (
+          parsed.data.problemIds.length !== input.count ||
+          new Set(parsed.data.problemIds).size !==
+            parsed.data.problemIds.length ||
+          parsed.data.problemIds.some(
+            problemId =>
+              !problemById.has(problemId) ||
+              !selected.some(item => item.problemId === problemId)
+          )
+        )
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "AI contest generation selected unavailable problems.",
+          });
+        return { proposal: parsed.data };
+      }),
     suggest: protectedProcedure
       .input(z.object({ count: z.number().int().min(1).max(8).default(4) }))
       .query(async ({ ctx, input }) => {
@@ -1433,7 +1589,7 @@ export const olimpRouter = router({
           .select()
           .from(problems)
           .orderBy(asc(problems.difficulty), asc(problems.id))
-          .limit(120);
+          .limit(24);
         if (!candidates.length)
           return {
             calculationVersion: contestSelectionCalculationVersion,
