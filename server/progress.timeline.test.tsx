@@ -21,6 +21,27 @@ const timeline = {
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     olimp: {
+      ai: {
+        progressAnalysis: {
+          useQuery: () => ({
+            data: {
+              calculationVersion: "progress-analysis-v1",
+              contextVersion: "user-context-v1",
+              status: "insufficient_evidence",
+              observations: [],
+              evidence: {
+                progressRecords: 0,
+                attempts: 0,
+                trainingSessions: 0,
+                contestSessions: 0,
+              },
+              limitations: [],
+            },
+            isLoading: false,
+            error: null,
+          }),
+        },
+      },
       analytics: {
         summary: {
           useQuery: () => ({

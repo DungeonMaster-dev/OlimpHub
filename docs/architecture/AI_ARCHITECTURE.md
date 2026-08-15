@@ -176,3 +176,8 @@ that boundary rather than invoke the built-in proxy directly.
 The minimal owner-scoped aggregate context introduced in P1-1002 is specified
 in [AI_USER_CONTEXT.md](./AI_USER_CONTEXT.md). Future AI features must use the
 smallest relevant subset and never add excluded private content to prompts.
+
+The P1-1003 deterministic evidence projection is specified in
+[AI_PROGRESS_ANALYSIS.md](./AI_PROGRESS_ANALYSIS.md). It provides factual
+counts and explicit insufficiency states, not ability, trajectory or outcome
+predictions.

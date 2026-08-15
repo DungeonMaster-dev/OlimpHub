@@ -2,6 +2,20 @@ export const structuredUserContextVersion = "user-context-v1";
 
 type CountRow = { status: string; count: number | string };
 
+export type StructuredUserContext = {
+  contextVersion: typeof structuredUserContextVersion;
+  preferences: {
+    timeZone: string;
+    weeklyGoal: number;
+    activityTracking: "enabled" | "minimal";
+  };
+  progressByStatus: Record<string, number>;
+  attemptsByState: Record<string, number>;
+  trainingSessionsByStatus: Record<string, number>;
+  contestSessionsByStatus: Record<string, number>;
+  excludedData: string[];
+};
+
 function normalizeCounts(rows: CountRow[]) {
   return Object.fromEntries(
     rows
@@ -20,7 +34,7 @@ export function buildStructuredUserContext(input: {
   attempts: CountRow[];
   trainingSessions: CountRow[];
   contestSessions: CountRow[];
-}) {
+}): StructuredUserContext {
   return {
     contextVersion: structuredUserContextVersion,
     preferences: input.preferences,

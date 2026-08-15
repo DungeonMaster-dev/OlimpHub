@@ -1,5 +1,6 @@
 import {
   Activity,
+  Bot,
   CheckCircle2,
   CirclePlay,
   Info,
@@ -15,6 +16,7 @@ export default function Progress() {
   const timeline = trpc.olimp.analytics.timeline.useQuery({ periodDays });
   const activityStatistics = trpc.olimp.analytics.activityStatistics.useQuery();
   const activityStreak = trpc.olimp.analytics.activityStreak.useQuery();
+  const factualAnalysis = trpc.olimp.ai.progressAnalysis.useQuery();
   if (summary.error) return <ErrorState message={summary.error.message} />;
   if (summary.isLoading || !summary.data)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
@@ -66,6 +68,11 @@ export default function Progress() {
           icon={Info}
         />
       </section>
+      <FactualProgressAnalysis
+        analysis={factualAnalysis.data}
+        loading={factualAnalysis.isLoading}
+        error={factualAnalysis.error?.message}
+      />
       {activityStatistics.error ? (
         <ErrorState message={activityStatistics.error.message} />
       ) : activityStatistics.isLoading || !activityStatistics.data ? (
@@ -127,6 +134,107 @@ export default function Progress() {
         </p>
       </section>
     </div>
+  );
+}
+
+export function FactualProgressAnalysis({
+  analysis,
+  loading,
+  error,
+}: {
+  analysis:
+    | {
+        calculationVersion: string;
+        contextVersion: string;
+        status: "available" | "insufficient_evidence";
+        observations: Array<{
+          code: string;
+          count: number;
+          label: string;
+          detail: string;
+        }>;
+        evidence: {
+          progressRecords: number;
+          attempts: number;
+          trainingSessions: number;
+          contestSessions: number;
+        };
+        limitations: string[];
+      }
+    | undefined;
+  loading: boolean;
+  error?: string;
+}) {
+  if (loading)
+    return (
+      <section className="h-52 animate-pulse rounded-3xl bg-white/[.04]" />
+    );
+  if (error)
+    return (
+      <section className="panel" role="alert">
+        <p className="eyebrow">AI-READY PROGRESS</p>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          The factual progress snapshot is unavailable right now. No coaching
+          prompt was generated.
+        </p>
+      </section>
+    );
+  if (!analysis) return null;
+  if (analysis.status === "insufficient_evidence")
+    return (
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">AI-READY PROGRESS</p>
+            <h3>Awaiting recorded learning evidence</h3>
+          </div>
+          <Bot className="h-5 w-5 text-indigo-200" />
+        </div>
+        <p className="mt-4 text-sm leading-6 text-slate-400">
+          No saved progress records, attempts or sessions are available yet.
+          This is an evidence state, not a judgment about your learning.
+        </p>
+      </section>
+    );
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">AI-READY PROGRESS</p>
+          <h3>Current learning evidence</h3>
+        </div>
+        <span className="tag">{analysis.calculationVersion}</span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        This is a deterministic snapshot of persisted statuses. It does not
+        predict ability, ranking, rating or future outcomes.
+      </p>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {analysis.observations.map(observation => (
+          <div
+            key={observation.code}
+            className="rounded-xl border border-white/[.06] bg-white/[.02] p-4"
+          >
+            <p className="text-xs uppercase tracking-[.16em] text-slate-500">
+              {observation.label}
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-slate-100">
+              {observation.count}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              {observation.detail}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-5 text-xs leading-5 text-slate-600">
+        Evidence basis: {analysis.evidence.progressRecords} progress records ·{" "}
+        {analysis.evidence.attempts} attempts ·{" "}
+        {analysis.evidence.trainingSessions} training sessions ·{" "}
+        {analysis.evidence.contestSessions} contest sessions. Context:{" "}
+        {analysis.contextVersion}.
+      </p>
+    </section>
   );
 }
 
