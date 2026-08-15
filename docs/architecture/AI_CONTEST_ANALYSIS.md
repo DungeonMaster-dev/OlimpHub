@@ -2,10 +2,10 @@
 
 ## Scope
 
-P1-1007 will introduce a dedicated protected terminal contest-analysis
-projection that composes only the established contest-performance, scoring and
-autopsy facts. Existing detail views already render those facts, but the AI
-Coach task remains pending until the distinct contract and regressions exist.
+P1-1007 introduces the `contest-analysis-v1` terminal contest-analysis
+projection through protected contest detail. It composes only the established
+contest-performance, scoring and autopsy facts and is unavailable until the
+contest is completed or expired.
 
 The projection must be unavailable for draft and active contests. It may return
 completion, timing evidence, scoring availability and position-ordered terminal

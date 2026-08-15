@@ -196,6 +196,13 @@ export default function ContestSession() {
             This is a factual summary of persisted contest evidence. It does not
             infer rank, rating, skill or problem quality.
           </p>
+          {detail.data.analysis?.available ? (
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              Analysis contract: {detail.data.analysis.calculationVersion}. The
+              terminal trace below is factual only and does not diagnose causes
+              or predict later outcomes.
+            </p>
+          ) : null}
         </section>
       ) : null}
 

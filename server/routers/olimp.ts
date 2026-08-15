@@ -89,6 +89,7 @@ import {
   contestSelectionCalculationVersion,
   selectContestProblems,
 } from "../domain/contestSelection";
+import { buildContestAnalysis } from "../../shared/contestAnalysis";
 import {
   adaptiveTrainingCalculationVersion,
   calculateDifficultyProgression,
@@ -2341,6 +2342,11 @@ export const olimpRouter = router({
           scoring,
           performance,
           autopsy,
+          analysis: buildContestAnalysis({
+            status: timedSession.status,
+            performance,
+            autopsy,
+          }),
           replay: buildContestReplay({ status: timedSession.status, autopsy }),
         };
       }),
