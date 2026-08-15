@@ -94,3 +94,4 @@
 - [x] Add user-visible P1-905 AI draft error feedback and regression coverage for model, validation and insufficient-eligible-problem failures.
 - [x] Implement P1-906 factual contest performance analysis from persisted session, timer, item and scoring evidence without unrecorded inferences.
 - [x] Implement P1-907 owner-scoped factual Contest Autopsy from persisted contest lifecycle, timing and scoring evidence.
+- [x] Implement P1-908 private read-only contest replay from durable terminal evidence, without replaying mutations or inferring outcomes.

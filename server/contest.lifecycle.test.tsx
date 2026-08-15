@@ -138,6 +138,45 @@ vi.mock("@/lib/trpc", () => ({
                       trace: [],
                       summary: null,
                     },
+              replay:
+                mocks.completedSession || mocks.expiredSession
+                  ? {
+                      calculationVersion: "contest-replay-v1",
+                      available: true,
+                      reason: null,
+                      frames: [
+                        {
+                          frameIndex: 0,
+                          itemId: 11,
+                          problemId: 8,
+                          problemTitle: "Traversal",
+                          status: mocks.completedSession
+                            ? "completed"
+                            : "active",
+                          completedElapsedSeconds: mocks.completedSession
+                            ? 510
+                            : null,
+                          completionEvidence: mocks.completedSession
+                            ? "recorded"
+                            : "unavailable",
+                        },
+                        {
+                          frameIndex: 1,
+                          itemId: 12,
+                          problemId: 9,
+                          problemTitle: "Paths",
+                          status: mocks.completedSession ? "skipped" : "queued",
+                          completedElapsedSeconds: null,
+                          completionEvidence: "unavailable",
+                        },
+                      ],
+                    }
+                  : {
+                      calculationVersion: "contest-replay-v1",
+                      available: false,
+                      reason: "contest_not_terminal",
+                      frames: [],
+                    },
               items: [
                 {
                   item: {
@@ -232,8 +271,13 @@ describe("contest session lifecycle UI", () => {
     expect(screen.getByText("Terminal timestamp")).toBeTruthy();
     expect(screen.getByText("CONTEST AUTOPSY")).toBeTruthy();
     expect(screen.getByText("All items resolved")).toBeTruthy();
-    expect(screen.getByText("00:08:30")).toBeTruthy();
+    expect(screen.getAllByText("00:08:30")).not.toHaveLength(0);
     expect(screen.getAllByText(/does not infer rank/i)).not.toHaveLength(0);
+    expect(screen.getByText("READ-ONLY REPLAY")).toBeTruthy();
+    expect(screen.getByText("Replay frame 1 of 2")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Next replay frame" }));
+    expect(screen.getByText("Replay frame 2 of 2")).toBeTruthy();
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 
   it("renders the server-materialized expiration state instead of allowing another advance", () => {
@@ -243,6 +287,7 @@ describe("contest session lifecycle UI", () => {
     expect(screen.getByText("TIME EXPIRED")).toBeTruthy();
     expect(screen.getByText("CONTEST FACTS")).toBeTruthy();
     expect(screen.getByText("CONTEST AUTOPSY")).toBeTruthy();
+    expect(screen.getByText("READ-ONLY REPLAY")).toBeTruthy();
     expect(screen.getByText("Deadline expired")).toBeTruthy();
     expect(screen.getAllByText("02:00:00")).not.toHaveLength(0);
     expect(screen.queryByRole("button", { name: "Complete item" })).toBeNull();

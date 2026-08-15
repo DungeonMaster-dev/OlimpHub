@@ -41,6 +41,7 @@ export default function ContestSession() {
     onSuccess: () => utils.olimp.contests.detail.invalidate({ sessionId }),
   });
   const [clockMs, setClockMs] = useState(() => Date.now());
+  const [replayIndex, setReplayIndex] = useState(0);
   useEffect(() => {
     if (!detail.data?.timer?.expiresAt || detail.data.timer.isExpired) return;
     const timer = window.setInterval(() => setClockMs(Date.now()), 1_000);
@@ -74,6 +75,11 @@ export default function ContestSession() {
     if (!active) return;
     updateItem.mutate({ sessionId, itemId: active.item.id, status });
   };
+  const replayFrame = detail.data.replay?.available
+    ? detail.data.replay.frames[
+        Math.min(replayIndex, detail.data.replay.frames.length - 1)
+      ]
+    : null;
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -231,6 +237,59 @@ export default function ContestSession() {
               </div>
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {replayFrame && detail.data.replay?.available ? (
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">READ-ONLY REPLAY</p>
+              <h3>
+                Replay frame {replayFrame.frameIndex + 1} of{" "}
+                {detail.data.replay.frames.length}
+              </h3>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-white/[.06] bg-white/[.02] p-4">
+            <p className="text-sm font-medium text-slate-200">
+              {replayFrame.frameIndex + 1}. {replayFrame.problemTitle}
+            </p>
+            <p className="mt-1 text-xs capitalize text-slate-500">
+              Recorded state: {replayFrame.status}
+            </p>
+            <p className="mt-3 font-mono text-xs text-slate-400">
+              {replayFrame.completedElapsedSeconds === null
+                ? "No completed timestamp"
+                : formatElapsedTime(replayFrame.completedElapsedSeconds)}
+            </p>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              className="quiet-button text-xs"
+              disabled={replayIndex === 0}
+              onClick={() => setReplayIndex(index => Math.max(0, index - 1))}
+            >
+              Previous replay frame
+            </button>
+            <button
+              type="button"
+              className="quiet-button text-xs"
+              disabled={replayIndex >= detail.data.replay.frames.length - 1}
+              onClick={() =>
+                setReplayIndex(index =>
+                  Math.min(detail.data.replay.frames.length - 1, index + 1)
+                )
+              }
+            >
+              Next replay frame
+            </button>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            Replay navigation is local and read-only. It cannot alter contest
+            outcomes, score or timing evidence.
+          </p>
         </section>
       ) : null}
 

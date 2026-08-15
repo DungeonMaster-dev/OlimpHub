@@ -7,6 +7,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { editorActiveIntervalSeconds } from "@shared/activityTracking";
 import { buildContestAutopsy } from "@shared/contestAutopsy";
 import { summarizeContestPerformance } from "@shared/contestPerformance";
+import { buildContestReplay } from "@shared/contestReplay";
 import {
   activityEvents,
   codeforcesLinks,
@@ -1948,6 +1949,19 @@ export const olimpRouter = router({
           })),
           scoring,
         });
+        const autopsy = buildContestAutopsy({
+          status: timedSession.status,
+          startedAt: timedSession.startedAt,
+          items: items.map(({ item, problem }) => ({
+            id: item.id,
+            position: item.position,
+            status: item.status,
+            completedAt: item.completedAt,
+            problemId: problem.id,
+            problemTitle: problem.title,
+          })),
+          performance,
+        });
         return {
           session: timedSession,
           items,
@@ -1962,19 +1976,8 @@ export const olimpRouter = router({
           },
           scoring,
           performance,
-          autopsy: buildContestAutopsy({
-            status: timedSession.status,
-            startedAt: timedSession.startedAt,
-            items: items.map(({ item, problem }) => ({
-              id: item.id,
-              position: item.position,
-              status: item.status,
-              completedAt: item.completedAt,
-              problemId: problem.id,
-              problemTitle: problem.title,
-            })),
-            performance,
-          }),
+          autopsy,
+          replay: buildContestReplay({ status: timedSession.status, autopsy }),
         };
       }),
   }),
