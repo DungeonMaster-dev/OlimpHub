@@ -96,3 +96,4 @@
 - [x] Implement P1-907 owner-scoped factual Contest Autopsy from persisted contest lifecycle, timing and scoring evidence.
 - [x] Implement P1-908 private read-only contest replay from durable terminal evidence, without replaying mutations or inferring outcomes.
 - [x] Implement P1-1001 live-catalog-aware server model-provider abstraction with structured-output routing, safe capability validation and no client-side credentials.
+- [x] Implement P1-1002 minimal owner-scoped structured AI user-context builder from factual learning and contest evidence without free-form private content.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Bell, Database, Eye, Link2, Save, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { ErrorState } from "./Home";
@@ -21,12 +21,77 @@ type InitialSettings = {
   } | null;
 };
 
+type AIContext = {
+  contextVersion: string;
+  progressByStatus: Record<string, number>;
+  attemptsByState: Record<string, number>;
+  trainingSessionsByStatus: Record<string, number>;
+  contestSessionsByStatus: Record<string, number>;
+  excludedData: string[];
+};
+
+function totalCount(values: Record<string, number>) {
+  return Object.values(values).reduce((total, value) => total + value, 0);
+}
+
+export function AIContextPreview({
+  context,
+  loading,
+  error,
+}: {
+  context: AIContext | undefined;
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">AI CONTEXT</p>
+          <h3>Minimal factual preview</h3>
+        </div>
+        <Database className="h-4 w-4 text-violet-200" />
+      </div>
+      {loading ? (
+        <div className="mt-4 h-20 animate-pulse rounded-xl bg-white/[.04]" />
+      ) : error ? (
+        <p className="mt-3 text-xs leading-5 text-rose-200" role="alert">
+          AI context preview is unavailable. No data was sent to an AI feature.
+        </p>
+      ) : context ? (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">PROGRESS RECORDS</p>
+              <p className="mt-2 text-xl font-medium text-slate-100">
+                {totalCount(context.progressByStatus)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">ATTEMPTS</p>
+              <p className="mt-2 text-xl font-medium text-slate-100">
+                {totalCount(context.attemptsByState)}
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-xs leading-5 text-slate-500">
+            {context.contextVersion} contains status counts and workspace
+            preferences only. It excludes notes, source code, raw activity,
+            external handles and session credentials.
+          </p>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function normalizeRetentionDays(value: number): 30 | 90 | 365 {
   return value === 30 || value === 365 ? value : 90;
 }
 
 export default function Settings() {
   const settings = trpc.olimp.settings.get.useQuery();
+  const aiContext = trpc.olimp.ai.context.useQuery();
   if (settings.error) return <ErrorState message={settings.error.message} />;
   if (settings.isLoading || !settings.data)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
@@ -34,11 +99,24 @@ export default function Settings() {
     <SettingsForm
       key={String(settings.data.settings.updatedAt)}
       initial={settings.data}
+      aiContext={aiContext.data}
+      aiContextLoading={aiContext.isLoading}
+      aiContextError={aiContext.error?.message ?? null}
     />
   );
 }
 
-function SettingsForm({ initial }: { initial: InitialSettings }) {
+function SettingsForm({
+  initial,
+  aiContext,
+  aiContextLoading,
+  aiContextError,
+}: {
+  initial: InitialSettings;
+  aiContext: AIContext | undefined;
+  aiContextLoading: boolean;
+  aiContextError: string | null;
+}) {
   const utils = trpc.useUtils();
   const [handle, setHandle] = useState(initial.codeforces?.handle ?? "");
   const [timeZone, setTimeZone] = useState(initial.settings.timeZone);
@@ -190,6 +268,11 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
             </div>
           )}
         </section>
+        <AIContextPreview
+          context={aiContext}
+          loading={aiContextLoading}
+          error={aiContextError}
+        />
         <section className="panel">
           <div className="panel-head">
             <div>

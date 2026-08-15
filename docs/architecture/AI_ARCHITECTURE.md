@@ -172,3 +172,7 @@ P1-1001 реализует ProviderAdapter и контракты без связ
 The server-side live-catalog-aware provider abstraction introduced in P1-1001
 is specified in [MODEL_PROVIDER.md](./MODEL_PROVIDER.md). AI features must use
 that boundary rather than invoke the built-in proxy directly.
+
+The minimal owner-scoped aggregate context introduced in P1-1002 is specified
+in [AI_USER_CONTEXT.md](./AI_USER_CONTEXT.md). Future AI features must use the
+smallest relevant subset and never add excluded private content to prompts.

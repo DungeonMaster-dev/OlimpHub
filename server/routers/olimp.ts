@@ -35,6 +35,7 @@ import {
 } from "../../drizzle/schema";
 import { getDb } from "../db";
 import { generateStructured } from "../ai/modelProvider";
+import { buildStructuredUserContext } from "../ai/userContext";
 import { createHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
@@ -500,6 +501,75 @@ async function reconcileProblemCanonicalizationStatuses(
 }
 
 export const olimpRouter = router({
+  ai: router({
+    context: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      const [
+        settingsRows,
+        progress,
+        attempts,
+        trainingSessionsByStatus,
+        contestSessionsByStatus,
+      ] = await Promise.all([
+        db
+          .select({
+            timeZone: userSettings.timeZone,
+            weeklyGoal: userSettings.weeklyGoal,
+            activityTracking: userSettings.activityTracking,
+          })
+          .from(userSettings)
+          .where(eq(userSettings.userId, ctx.user.id))
+          .limit(1),
+        db
+          .select({
+            status: userProblemProgress.status,
+            count: sql<number>`count(*)`,
+          })
+          .from(userProblemProgress)
+          .where(eq(userProblemProgress.userId, ctx.user.id))
+          .groupBy(userProblemProgress.status),
+        db
+          .select({
+            state: solvingAttempts.state,
+            count: sql<number>`count(*)`,
+          })
+          .from(solvingAttempts)
+          .where(eq(solvingAttempts.userId, ctx.user.id))
+          .groupBy(solvingAttempts.state),
+        db
+          .select({
+            status: trainingSessions.status,
+            count: sql<number>`count(*)`,
+          })
+          .from(trainingSessions)
+          .where(eq(trainingSessions.userId, ctx.user.id))
+          .groupBy(trainingSessions.status),
+        db
+          .select({
+            status: contestSessions.status,
+            count: sql<number>`count(*)`,
+          })
+          .from(contestSessions)
+          .where(eq(contestSessions.userId, ctx.user.id))
+          .groupBy(contestSessions.status),
+      ]);
+      const settings = settingsRows[0] ?? {
+        timeZone: "UTC",
+        weeklyGoal: 4,
+        activityTracking: "enabled" as const,
+      };
+      return buildStructuredUserContext({
+        preferences: settings,
+        progress,
+        attempts: attempts.map(row => ({
+          status: row.state,
+          count: row.count,
+        })),
+        trainingSessions: trainingSessionsByStatus,
+        contestSessions: contestSessionsByStatus,
+      });
+    }),
+  }),
   sourceHealth: router({
     list: adminProcedure.query(async () => {
       const db = await requireDb();

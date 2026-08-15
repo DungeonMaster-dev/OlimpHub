@@ -156,7 +156,7 @@
 # Phase 10 — AI Coach
 
 - [x] P1-1001 Implement model-provider abstraction. A server-only provider now validates named strict JSON schemas, resolves preferred IDs against the live built-in model catalog at request time and uses the proxy default only if no preference remains available. Existing AI contest generation now uses this layer while retaining its protected prompt and feature-specific validation. Provider, migrated router and final quality regressions pass.
-- [ ] P1-1002 Implement structured user-context builder.
+- [x] P1-1002 Implement structured user-context builder. Protected `olimp.ai.context` now returns `user-context-v1`: only owner settings and aggregate current-status counts for progress, attempts, training and contests, with documented defaults. It never selects notes, source code, raw activity metadata, external handles or credentials. Settings shows a compact aggregate preview and safe non-blocking failure state. Builder, protected-router, UI and final quality regressions pass.
 - [ ] P1-1003 Implement progress analysis.
 - [ ] P1-1004 Implement recurring-mistake detection.
 - [ ] P1-1005 Implement problem recommendations.
