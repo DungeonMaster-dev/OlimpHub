@@ -5,6 +5,7 @@ import { and, asc, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { editorActiveIntervalSeconds } from "@shared/activityTracking";
+import { buildContestAutopsy } from "@shared/contestAutopsy";
 import { summarizeContestPerformance } from "@shared/contestPerformance";
 import {
   activityEvents,
@@ -1935,6 +1936,18 @@ export const olimpRouter = router({
             completedAt: item.completedAt,
           })),
         });
+        const performance = summarizeContestPerformance({
+          status: timedSession.status,
+          startedAt: timedSession.startedAt,
+          completedAt: timedSession.completedAt,
+          expiresAt: timedSession.expiresAt,
+          observedAt: new Date(),
+          items: items.map(({ item }) => ({
+            status: item.status,
+            completedAt: item.completedAt,
+          })),
+          scoring,
+        });
         return {
           session: timedSession,
           items,
@@ -1948,17 +1961,19 @@ export const olimpRouter = router({
             isExpired: timedSession.status === "expired",
           },
           scoring,
-          performance: summarizeContestPerformance({
+          performance,
+          autopsy: buildContestAutopsy({
             status: timedSession.status,
             startedAt: timedSession.startedAt,
-            completedAt: timedSession.completedAt,
-            expiresAt: timedSession.expiresAt,
-            observedAt: new Date(),
-            items: items.map(({ item }) => ({
+            items: items.map(({ item, problem }) => ({
+              id: item.id,
+              position: item.position,
               status: item.status,
               completedAt: item.completedAt,
+              problemId: problem.id,
+              problemTitle: problem.title,
             })),
-            scoring,
+            performance,
           }),
         };
       }),

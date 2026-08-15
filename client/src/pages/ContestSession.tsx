@@ -193,6 +193,47 @@ export default function ContestSession() {
         </section>
       ) : null}
 
+      {detail.data.autopsy?.available ? (
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">CONTEST AUTOPSY</p>
+              <h3>
+                {detail.data.autopsy.terminalOutcome === "all_items_resolved"
+                  ? "All items resolved"
+                  : "Deadline expired"}
+              </h3>
+            </div>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Ordered terminal evidence only; no cause, mistake, rank or skill is
+            inferred.
+          </p>
+          <div className="mt-4 divide-y divide-white/[.06]">
+            {detail.data.autopsy.trace.map(entry => (
+              <div
+                className="flex items-center justify-between gap-4 py-3"
+                key={entry.itemId}
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-slate-200">
+                    {entry.position + 1}. {entry.problemTitle}
+                  </p>
+                  <p className="mt-1 text-xs capitalize text-slate-500">
+                    {entry.status}
+                  </p>
+                </div>
+                <p className="shrink-0 font-mono text-xs text-slate-400">
+                  {entry.completedElapsedSeconds === null
+                    ? "No completed timestamp"
+                    : formatElapsedTime(entry.completedElapsedSeconds)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       {isExpired ? (
         <section className="panel text-center">
           <p className="eyebrow">TIME EXPIRED</p>

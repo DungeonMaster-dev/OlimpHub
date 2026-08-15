@@ -93,3 +93,4 @@
 - [x] Implement P1-905 AI-generated personalized contest draft using a server-side structured model call over protected eligible catalogue facts only.
 - [x] Add user-visible P1-905 AI draft error feedback and regression coverage for model, validation and insufficient-eligible-problem failures.
 - [x] Implement P1-906 factual contest performance analysis from persisted session, timer, item and scoring evidence without unrecorded inferences.
+- [x] Implement P1-907 owner-scoped factual Contest Autopsy from persisted contest lifecycle, timing and scoring evidence.

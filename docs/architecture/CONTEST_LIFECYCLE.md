@@ -23,6 +23,9 @@ added in P1-905 are specified in
 The persisted-evidence-only contest fact summary added in P1-906 is specified
 in [CONTEST_PERFORMANCE_ANALYSIS.md](./CONTEST_PERFORMANCE_ANALYSIS.md).
 
+The terminal-only chronological review added in P1-907 is specified in
+[CONTEST_AUTOPSY.md](./CONTEST_AUTOPSY.md).
+
 ## Implemented state contract
 
 A contest session begins as `draft`, may become `active`, and finishes as `completed` or `archived`. Its ordered items are `queued`, `active`, `completed` or `skipped`. Starting an owned draft activates exactly the first queued item. Only one item may be active; clients can submit only terminal resolution states for that item. A terminal current-item transition promotes the next queued item server-side, while completion requires every item to be terminal.

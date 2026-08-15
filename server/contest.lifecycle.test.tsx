@@ -86,6 +86,58 @@ vi.mock("@/lib/trpc", () => ({
                   totalPenaltyMinutes: mocks.completedSession ? 12 : 0,
                 },
               },
+              autopsy:
+                mocks.completedSession || mocks.expiredSession
+                  ? {
+                      calculationVersion: "contest-autopsy-v1",
+                      available: true,
+                      reason: null,
+                      terminalOutcome: mocks.completedSession
+                        ? "all_items_resolved"
+                        : "deadline_expired",
+                      trace: [
+                        {
+                          itemId: 11,
+                          position: 0,
+                          status: mocks.completedSession
+                            ? "completed"
+                            : "active",
+                          problemId: 8,
+                          problemTitle: "Traversal",
+                          completedElapsedSeconds: mocks.completedSession
+                            ? 510
+                            : null,
+                          completionEvidence: mocks.completedSession
+                            ? "recorded"
+                            : "unavailable",
+                        },
+                        {
+                          itemId: 12,
+                          position: 1,
+                          status: mocks.completedSession ? "skipped" : "queued",
+                          problemId: 9,
+                          problemTitle: "Paths",
+                          completedElapsedSeconds: null,
+                          completionEvidence: "unavailable",
+                        },
+                      ],
+                      summary: {
+                        completionPercentage: mocks.completedSession ? 100 : 0,
+                        elapsedSeconds: mocks.completedSession ? 630 : 7_200,
+                        elapsedEvidence: "terminal_timestamp",
+                        totalScore: mocks.completedSession ? 100 : 0,
+                        totalPenaltyMinutes: mocks.completedSession ? 12 : 0,
+                        scoringAvailable: true,
+                      },
+                    }
+                  : {
+                      calculationVersion: "contest-autopsy-v1",
+                      available: false,
+                      reason: "contest_not_terminal",
+                      terminalOutcome: null,
+                      trace: [],
+                      summary: null,
+                    },
               items: [
                 {
                   item: {
@@ -178,6 +230,9 @@ describe("contest session lifecycle UI", () => {
     expect(screen.getByText("CONTEST FACTS")).toBeTruthy();
     expect(screen.getByText("00:10:30")).toBeTruthy();
     expect(screen.getByText("Terminal timestamp")).toBeTruthy();
+    expect(screen.getByText("CONTEST AUTOPSY")).toBeTruthy();
+    expect(screen.getByText("All items resolved")).toBeTruthy();
+    expect(screen.getByText("00:08:30")).toBeTruthy();
     expect(screen.getAllByText(/does not infer rank/i)).not.toHaveLength(0);
   });
 
@@ -187,6 +242,8 @@ describe("contest session lifecycle UI", () => {
 
     expect(screen.getByText("TIME EXPIRED")).toBeTruthy();
     expect(screen.getByText("CONTEST FACTS")).toBeTruthy();
+    expect(screen.getByText("CONTEST AUTOPSY")).toBeTruthy();
+    expect(screen.getByText("Deadline expired")).toBeTruthy();
     expect(screen.getAllByText("02:00:00")).not.toHaveLength(0);
     expect(screen.queryByRole("button", { name: "Complete item" })).toBeNull();
   });
