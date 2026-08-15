@@ -1,15 +1,22 @@
+import {
+  Activity,
+  CheckCircle2,
+  CirclePlay,
+  Info,
+  TrendingUp,
+} from "lucide-react";
 import { useState } from "react";
-import { Activity, CheckCircle2, CirclePlay, Info } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { ErrorState } from "./Home";
 
 export default function Progress() {
   const [periodDays, setPeriodDays] = useState<7 | 30 | 90>(30);
   const summary = trpc.olimp.analytics.summary.useQuery({ periodDays });
+  const timeline = trpc.olimp.analytics.timeline.useQuery({ periodDays });
   if (summary.error) return <ErrorState message={summary.error.message} />;
-  if (summary.isLoading)
+  if (summary.isLoading || !summary.data)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
-  const { metrics, evidence, period, calculationVersion } = summary.data!;
+  const { metrics, evidence, period, calculationVersion } = summary.data;
   return (
     <div className="space-y-7">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -57,6 +64,16 @@ export default function Progress() {
           icon={Info}
         />
       </section>
+      {timeline.error ? (
+        <ErrorState message={timeline.error.message} />
+      ) : timeline.isLoading || !timeline.data ? (
+        <div className="h-72 animate-pulse rounded-3xl bg-white/[.04]" />
+      ) : (
+        <section className="grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
+          <RatingTimeline changes={timeline.data.ratingChanges} />
+          <ActivityTimeline days={timeline.data.dailyActivity} />
+        </section>
+      )}
       <section className="panel">
         <div className="panel-head">
           <div>
@@ -96,6 +113,128 @@ export default function Progress() {
     </div>
   );
 }
+
+function RatingTimeline({
+  changes,
+}: {
+  changes: Array<{ ratedAt: Date; newRating: number; contestName: string }>;
+}) {
+  if (!changes.length)
+    return (
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">CODEFORCES RATING</p>
+            <h3>Rating timeline</h3>
+          </div>
+          <TrendingUp className="h-5 w-5 text-indigo-200" />
+        </div>
+        <p className="py-12 text-sm leading-6 text-slate-500">
+          No imported rating changes in this period. Link a public handle and
+          synchronize rating history to show factual contest points.
+        </p>
+      </section>
+    );
+  const ratings = changes.map(change => change.newRating);
+  const minimum = Math.min(...ratings);
+  const span = Math.max(Math.max(...ratings) - minimum, 1);
+  const pointFor = (change: (typeof changes)[number], index: number) => ({
+    x: changes.length === 1 ? 50 : (index / (changes.length - 1)) * 100,
+    y: 88 - ((change.newRating - minimum) / span) * 70,
+  });
+  const points = changes
+    .map((change, index) => {
+      const point = pointFor(change, index);
+      return `${point.x},${point.y}`;
+    })
+    .join(" ");
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">CODEFORCES RATING</p>
+          <h3>Rating timeline</h3>
+        </div>
+        <span className="tag">{changes.at(-1)!.newRating} current</span>
+      </div>
+      <svg
+        className="mt-6 h-48 w-full overflow-visible"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Codeforces rating changes over the selected period"
+      >
+        <path d="M0 88 H100" stroke="rgba(148,163,184,.2)" strokeWidth="1" />
+        <polyline
+          fill="none"
+          points={points}
+          stroke="rgb(165 180 252)"
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+        />
+        {changes.map((change, index) => {
+          const point = pointFor(change, index);
+          return (
+            <circle
+              key={`${change.contestName}-${change.ratedAt.toISOString()}`}
+              cx={point.x}
+              cy={point.y}
+              r="2"
+              fill="rgb(224 231 255)"
+            >
+              <title>{`${change.contestName}: ${change.newRating}`}</title>
+            </circle>
+          );
+        })}
+      </svg>
+      <div className="flex justify-between text-xs text-slate-500">
+        <span>{changes[0]!.ratedAt.toLocaleDateString()}</span>
+        <span>{changes.at(-1)!.ratedAt.toLocaleDateString()}</span>
+      </div>
+    </section>
+  );
+}
+
+function ActivityTimeline({
+  days,
+}: {
+  days: Array<{ date: string; activityCount: number; solvedUpdates: number }>;
+}) {
+  const maxActivity = Math.max(...days.map(day => day.activityCount), 1);
+  const totalSolved = days.reduce((sum, day) => sum + day.solvedUpdates, 0);
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">WORKSPACE RHYTHM</p>
+          <h3>Daily activity</h3>
+        </div>
+        <span className="tag">{totalSolved} solved updates</span>
+      </div>
+      <div
+        className="mt-8 flex h-48 items-end gap-1"
+        aria-label="Daily recorded workspace activity"
+      >
+        {days.map(day => (
+          <div key={day.date} className="group flex h-full flex-1 items-end">
+            <div
+              className="w-full rounded-t-sm bg-indigo-300/70 transition-colors group-hover:bg-indigo-100"
+              style={{
+                height: `${Math.max((day.activityCount / maxActivity) * 100, day.activityCount ? 4 : 1)}%`,
+              }}
+              title={`${day.date}: ${day.activityCount} events, ${day.solvedUpdates} solved updates`}
+            />
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs leading-5 text-slate-500">
+        Bars count persisted workspace events. Solved updates are explicit
+        status changes, not inferred verdicts.
+      </p>
+    </section>
+  );
+}
+
 function Metric({
   label,
   value,

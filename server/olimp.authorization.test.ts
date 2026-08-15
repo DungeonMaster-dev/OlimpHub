@@ -34,6 +34,13 @@ describe("OlimpHub protected workspace", () => {
     });
   });
 
+  it("rejects an anonymous rating and progress timeline request", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+    await expect(
+      caller.olimp.analytics.timeline({ periodDays: 30 })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("rejects anonymous canonicalization changes before reading catalogue data", async () => {
     const caller = appRouter.createCaller(anonymousContext());
     await expect(

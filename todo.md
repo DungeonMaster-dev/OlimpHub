@@ -47,4 +47,5 @@
 - [x] Run and record final P1-402 tests, types, lint and format checks after the idempotency regression.
 - [x] Audit P1-403 Codeforces public submissions/verdict import against pagination, idempotency, owner scoping and visible history criteria.
 - [x] Audit P1-404 deterministic mapping from Codeforces external problem keys to canonical problem records without destructive merges.
-- [ ] Implement P1-405 daily Codeforces profile synchronization with an idempotent scheduled callback and documented production activation.
+- [x] Implement P1-405 daily Codeforces profile synchronization with an idempotent scheduled callback and documented production activation.
+- [x] Implement P1-406 owner-scoped rating and progress timeline from imported Codeforces and private workspace activity data.

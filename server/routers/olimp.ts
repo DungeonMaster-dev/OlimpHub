@@ -51,6 +51,7 @@ import {
   reconcileCanonicalizationStatus,
 } from "../domain/canonicalization";
 import { summarizeSourceHealth } from "../domain/sourceHealth";
+import { buildDailyProgressTimeline } from "../domain/timeline";
 import {
   codeforcesProfileSyncJobName,
   dailyCodeforcesProfileSyncCron,
@@ -1137,6 +1138,46 @@ export const olimpRouter = router({
           metrics,
           evidence,
           activity,
+        };
+      }),
+    timeline: protectedProcedure
+      .input(z.object({ periodDays: periodSchema }))
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const endsAt = new Date();
+        const startsAt = new Date(
+          endsAt.getTime() - input.periodDays * 24 * 60 * 60 * 1000
+        );
+        const [ratingChanges, events] = await Promise.all([
+          db
+            .select()
+            .from(codeforcesRatingChanges)
+            .where(
+              and(
+                eq(codeforcesRatingChanges.userId, ctx.user.id),
+                gte(codeforcesRatingChanges.ratedAt, startsAt)
+              )
+            )
+            .orderBy(asc(codeforcesRatingChanges.ratedAt)),
+          db
+            .select()
+            .from(activityEvents)
+            .where(
+              and(
+                eq(activityEvents.userId, ctx.user.id),
+                gte(activityEvents.occurredAt, startsAt)
+              )
+            )
+            .orderBy(asc(activityEvents.occurredAt)),
+        ]);
+        return {
+          period: { startsAt, endsAt, days: input.periodDays },
+          ratingChanges,
+          dailyActivity: buildDailyProgressTimeline({
+            startsAt,
+            endsAt,
+            events,
+          }),
         };
       }),
   }),
