@@ -34,7 +34,7 @@ import {
   userSettings,
 } from "../../drizzle/schema";
 import { getDb } from "../db";
-import { invokeLLM } from "../_core/llm";
+import { generateStructured } from "../ai/modelProvider";
 import { createHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
@@ -1507,8 +1507,8 @@ export const olimpRouter = router({
             selectionReason: selection.reason,
           };
         });
-        const response = await invokeLLM({
-          model: "claude-haiku-4-5",
+        const { content } = await generateStructured({
+          preferredModelIds: ["claude-haiku-4-5", "gpt-5-mini"],
           maxTokens: 1200,
           messages: [
             {
@@ -1547,12 +1547,6 @@ export const olimpRouter = router({
             },
           },
         });
-        const content = response.choices[0]?.message.content;
-        if (typeof content !== "string")
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "AI contest generation returned no structured proposal.",
-          });
         let json: unknown;
         try {
           json = JSON.parse(content);

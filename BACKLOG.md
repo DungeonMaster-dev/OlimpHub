@@ -155,7 +155,7 @@
 
 # Phase 10 — AI Coach
 
-- [ ] P1-1001 Implement model-provider abstraction.
+- [x] P1-1001 Implement model-provider abstraction. A server-only provider now validates named strict JSON schemas, resolves preferred IDs against the live built-in model catalog at request time and uses the proxy default only if no preference remains available. Existing AI contest generation now uses this layer while retaining its protected prompt and feature-specific validation. Provider, migrated router and final quality regressions pass.
 - [ ] P1-1002 Implement structured user-context builder.
 - [ ] P1-1003 Implement progress analysis.
 - [ ] P1-1004 Implement recurring-mistake detection.

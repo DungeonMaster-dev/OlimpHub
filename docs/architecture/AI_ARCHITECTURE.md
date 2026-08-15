@@ -166,3 +166,9 @@ P1-1001 реализует ProviderAdapter и контракты без связ
 [1]: https://developers.openai.com/api/docs/guides/structured-outputs "OpenAI — Structured model outputs"
 [2]: https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html "OWASP — LLM Prompt Injection Prevention Cheat Sheet"
 [3]: https://developers.openai.com/api/docs/guides/safety-best-practices "OpenAI — Safety best practices"
+
+# Model provider
+
+The server-side live-catalog-aware provider abstraction introduced in P1-1001
+is specified in [MODEL_PROVIDER.md](./MODEL_PROVIDER.md). AI features must use
+that boundary rather than invoke the built-in proxy directly.

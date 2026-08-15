@@ -6,11 +6,13 @@ const mocks = vi.hoisted(() => ({
   selectResults: [] as unknown[][],
   updates: [] as Array<Record<string, unknown>>,
   writes: [] as Array<Record<string, unknown>>,
-  invokeLLM: vi.fn(),
+  generateStructured: vi.fn(),
 }));
 
 vi.mock("./db", () => ({ getDb: mocks.getDb }));
-vi.mock("./_core/llm", () => ({ invokeLLM: mocks.invokeLLM }));
+vi.mock("./ai/modelProvider", () => ({
+  generateStructured: mocks.generateStructured,
+}));
 
 import { appRouter } from "./routers";
 
@@ -148,20 +150,15 @@ describe("virtual contest lifecycle", () => {
       [{ problemId: 2, status: "paused" }],
       [],
     ];
-    mocks.invokeLLM.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: JSON.stringify({
-              title: "Focused graph and DP",
-              durationMinutes: 120,
-              problemIds: [2, 4],
-              rationale:
-                "Starts with unfinished graph work, followed by a lighter dynamic programming problem.",
-            }),
-          },
-        },
-      ],
+    mocks.generateStructured.mockResolvedValue({
+      model: "claude-haiku-4-5",
+      content: JSON.stringify({
+        title: "Focused graph and DP",
+        durationMinutes: 120,
+        problemIds: [2, 4],
+        rationale:
+          "Starts with unfinished graph work, followed by a lighter dynamic programming problem.",
+      }),
     });
 
     await expect(
@@ -176,7 +173,7 @@ describe("virtual contest lifecycle", () => {
       },
     });
 
-    const invocation = mocks.invokeLLM.mock.calls[0]?.[0] as {
+    const invocation = mocks.generateStructured.mock.calls[0]?.[0] as {
       messages: Array<{ content: string }>;
     };
     expect(invocation.messages[1]?.content).toContain("Paused graph");
@@ -193,19 +190,14 @@ describe("virtual contest lifecycle", () => {
       [],
       [],
     ];
-    mocks.invokeLLM.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: JSON.stringify({
-              title: "Invalid selection",
-              durationMinutes: 120,
-              problemIds: [2, 999],
-              rationale: "Invalid ID should not be accepted.",
-            }),
-          },
-        },
-      ],
+    mocks.generateStructured.mockResolvedValue({
+      model: "claude-haiku-4-5",
+      content: JSON.stringify({
+        title: "Invalid selection",
+        durationMinutes: 120,
+        problemIds: [2, 999],
+        rationale: "Invalid ID should not be accepted.",
+      }),
     });
 
     await expect(
@@ -222,8 +214,9 @@ describe("virtual contest lifecycle", () => {
       [],
       [],
     ];
-    mocks.invokeLLM.mockResolvedValue({
-      choices: [{ message: { content: "not-json" } }],
+    mocks.generateStructured.mockResolvedValue({
+      model: "claude-haiku-4-5",
+      content: "not-json",
     });
 
     await expect(
