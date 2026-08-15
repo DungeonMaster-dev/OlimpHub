@@ -122,7 +122,7 @@
 
 # Phase 7 — Skill Engine
 
-- [x] P1-701 Create algorithm skill taxonomy. The existing 11 curated approved algorithm skills are now assigned to immutable published taxonomy version `1.0.0`; the managed migration persists version metadata and a non-null skill version reference, while the protected Skill Map scopes its records to that published version and displays its change summary. Database backfill, router regression, visual review and quality gates pass.
+- [x] P1-701 Create algorithm skill taxonomy. Published taxonomy `1.0.0`, approved curated skills, Skill Map version display and immutable `skill_graph_memberships` snapshots are implemented. The v1 backfill preserves stable skills in their original snapshot while allowing future versions to include the same skills without losing historical membership; migration, router regression, database verification, visual review and final quality gates pass.
 - [ ] P1-702 Create mathematics skill taxonomy for future expansion.
 - [ ] P1-703 Create skill dependency graph.
 - [ ] P1-704 Implement mastery calculation.

@@ -77,7 +77,7 @@ export const skills = mysqlTable(
     domain: mysqlEnum("domain", ["algorithms", "mathematics", "practice"])
       .default("algorithms")
       .notNull(),
-    graphVersionId: int("graphVersionId")
+    introducedInGraphVersionId: int("graphVersionId")
       .notNull()
       .references(() => skillGraphVersions.id, { onDelete: "restrict" }),
     color: varchar("color", { length: 16 }).default("#6170ff").notNull(),
@@ -89,7 +89,28 @@ export const skills = mysqlTable(
   },
   table => [
     uniqueIndex("skills_stable_key_unique").on(table.stableKey),
-    index("skills_graph_version_idx").on(table.graphVersionId),
+    index("skills_graph_version_idx").on(table.introducedInGraphVersionId),
+  ]
+);
+
+export const skillGraphMemberships = mysqlTable(
+  "skill_graph_memberships",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    graphVersionId: int("graphVersionId")
+      .notNull()
+      .references(() => skillGraphVersions.id, { onDelete: "cascade" }),
+    skillId: int("skillId")
+      .notNull()
+      .references(() => skills.id, { onDelete: "restrict" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("skill_graph_memberships_version_skill_unique").on(
+      table.graphVersionId,
+      table.skillId
+    ),
+    index("skill_graph_memberships_skill_idx").on(table.skillId),
   ]
 );
 

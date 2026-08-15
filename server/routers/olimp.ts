@@ -18,6 +18,7 @@ import {
   problemSkills,
   skillEdges,
   skillGraphVersions,
+  skillGraphMemberships,
   skills,
   solvingAttempts,
   sourceSyncStates,
@@ -1217,23 +1218,29 @@ export const olimpRouter = router({
       if (!graphVersion) {
         return { graphVersion: null, nodes: [], edges: [], links: [] };
       }
-      const [nodes, edges, links] = await Promise.all([
+      const [nodeRows, edges, links] = await Promise.all([
         db
-          .select()
-          .from(skills)
+          .select({ node: skills })
+          .from(skillGraphMemberships)
+          .innerJoin(skills, eq(skillGraphMemberships.skillId, skills.id))
           .where(
             and(
               eq(skills.status, "approved"),
-              eq(skills.graphVersionId, graphVersion.id)
+              eq(skillGraphMemberships.graphVersionId, graphVersion.id)
             )
           )
           .orderBy(asc(skills.title)),
         db.select().from(skillEdges),
         db
           .select({ link: problemSkills, problem: problems })
-          .from(problemSkills)
+          .from(skillGraphMemberships)
+          .innerJoin(
+            problemSkills,
+            eq(skillGraphMemberships.skillId, problemSkills.skillId)
+          )
           .innerJoin(problems, eq(problemSkills.problemId, problems.id)),
       ]);
+      const nodes = nodeRows.map(({ node }) => node);
       const nodeIds = new Set(nodes.map(node => node.id));
       return {
         graphVersion: {

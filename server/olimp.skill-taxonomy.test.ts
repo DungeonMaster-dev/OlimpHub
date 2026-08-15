@@ -63,12 +63,18 @@ describe("skills.map taxonomy version", () => {
       })
       .mockReturnValueOnce({
         from: vi.fn(() => ({
-          where: vi.fn(() => ({ orderBy: vi.fn(async () => nodes) })),
+          innerJoin: vi.fn(() => ({
+            where: vi.fn(() => ({
+              orderBy: vi.fn(async () => nodes.map(node => ({ node }))),
+            })),
+          })),
         })),
       })
       .mockReturnValueOnce({ from: vi.fn(async () => edges) })
       .mockReturnValueOnce({
-        from: vi.fn(() => ({ innerJoin: vi.fn(async () => links) })),
+        from: vi.fn(() => ({
+          innerJoin: vi.fn(() => ({ innerJoin: vi.fn(async () => links) })),
+        })),
       });
     mocks.getDb.mockResolvedValue({ select });
 
