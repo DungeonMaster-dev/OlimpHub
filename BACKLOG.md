@@ -122,7 +122,7 @@
 
 # Phase 7 — Skill Engine
 
-- [ ] P1-701 Create algorithm skill taxonomy.
+- [x] P1-701 Create algorithm skill taxonomy. The existing 11 curated approved algorithm skills are now assigned to immutable published taxonomy version `1.0.0`; the managed migration persists version metadata and a non-null skill version reference, while the protected Skill Map scopes its records to that published version and displays its change summary. Database backfill, router regression, visual review and quality gates pass.
 - [ ] P1-702 Create mathematics skill taxonomy for future expansion.
 - [ ] P1-703 Create skill dependency graph.
 - [ ] P1-704 Implement mastery calculation.

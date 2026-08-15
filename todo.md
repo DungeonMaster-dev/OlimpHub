@@ -68,3 +68,4 @@
 - [x] Implement P1-608 factual daily/weekly/monthly owner-scoped activity statistics and Progress display.
 - [x] Implement P1-609 owner-scoped solved-activity streak calculation and Progress display.
 - [x] Implement P1-610 owner-controlled privacy controls and activity retention policy with server-enforced deletion.
+- [x] Implement P1-701 versioned algorithm skill taxonomy from approved curated skills; keep P1-703 dependency-graph expansion and source-tag mappings as separate future scope.

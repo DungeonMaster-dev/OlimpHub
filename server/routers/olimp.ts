@@ -17,6 +17,7 @@ import {
   problems,
   problemSkills,
   skillEdges,
+  skillGraphVersions,
   skills,
   solvingAttempts,
   sourceSyncStates,
@@ -1205,11 +1206,27 @@ export const olimpRouter = router({
   skills: router({
     map: protectedProcedure.query(async () => {
       const db = await requireDb();
+      const graphVersion = (
+        await db
+          .select()
+          .from(skillGraphVersions)
+          .where(eq(skillGraphVersions.status, "published"))
+          .orderBy(desc(skillGraphVersions.publishedAt))
+          .limit(1)
+      )[0];
+      if (!graphVersion) {
+        return { graphVersion: null, nodes: [], edges: [], links: [] };
+      }
       const [nodes, edges, links] = await Promise.all([
         db
           .select()
           .from(skills)
-          .where(eq(skills.status, "approved"))
+          .where(
+            and(
+              eq(skills.status, "approved"),
+              eq(skills.graphVersionId, graphVersion.id)
+            )
+          )
           .orderBy(asc(skills.title)),
         db.select().from(skillEdges),
         db
@@ -1217,7 +1234,19 @@ export const olimpRouter = router({
           .from(problemSkills)
           .innerJoin(problems, eq(problemSkills.problemId, problems.id)),
       ]);
-      return { nodes, edges, links };
+      const nodeIds = new Set(nodes.map(node => node.id));
+      return {
+        graphVersion: {
+          semanticVersion: graphVersion.semanticVersion,
+          changeSummary: graphVersion.changeSummary,
+          publishedAt: graphVersion.publishedAt,
+        },
+        nodes,
+        edges: edges.filter(
+          edge => nodeIds.has(edge.fromSkillId) && nodeIds.has(edge.toSkillId)
+        ),
+        links: links.filter(({ link }) => nodeIds.has(link.skillId)),
+      };
     }),
   }),
 

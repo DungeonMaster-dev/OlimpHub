@@ -46,6 +46,27 @@ export const userSettings = mysqlTable(
   table => [uniqueIndex("user_settings_user_unique").on(table.userId)]
 );
 
+export const skillGraphVersions = mysqlTable(
+  "skill_graph_versions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    semanticVersion: varchar("semanticVersion", { length: 32 }).notNull(),
+    status: mysqlEnum("status", ["draft", "published", "deprecated"])
+      .default("draft")
+      .notNull(),
+    changeSummary: text("changeSummary").notNull(),
+    publishedAt: timestamp("publishedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("skill_graph_versions_semantic_version_unique").on(
+      table.semanticVersion
+    ),
+    index("skill_graph_versions_status_idx").on(table.status),
+  ]
+);
+
 export const skills = mysqlTable(
   "skills",
   {
@@ -56,6 +77,9 @@ export const skills = mysqlTable(
     domain: mysqlEnum("domain", ["algorithms", "mathematics", "practice"])
       .default("algorithms")
       .notNull(),
+    graphVersionId: int("graphVersionId")
+      .notNull()
+      .references(() => skillGraphVersions.id, { onDelete: "restrict" }),
     color: varchar("color", { length: 16 }).default("#6170ff").notNull(),
     status: mysqlEnum("status", ["draft", "approved", "deprecated"])
       .default("approved")
@@ -63,7 +87,10 @@ export const skills = mysqlTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
-  table => [uniqueIndex("skills_stable_key_unique").on(table.stableKey)]
+  table => [
+    uniqueIndex("skills_stable_key_unique").on(table.stableKey),
+    index("skills_graph_version_idx").on(table.graphVersionId),
+  ]
 );
 
 export const skillEdges = mysqlTable(

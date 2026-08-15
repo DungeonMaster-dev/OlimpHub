@@ -7,7 +7,7 @@ export default function Skills() {
   if (map.error) return <ErrorState message={map.error.message} />;
   if (map.isLoading)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
-  const { nodes, edges, links } = map.data!;
+  const { graphVersion, nodes, edges, links } = map.data!;
   const nodesById = new Map(nodes.map(node => [node.id, node]));
   const prerequisiteEdges = edges.filter(
     edge => edge.relationType === "prerequisite_of"
@@ -24,6 +24,14 @@ export default function Skills() {
           missing mastery. Connections remain visible, reviewable, and separate
           from external source tags.
         </p>
+        {graphVersion && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span className="tag">
+              taxonomy v{graphVersion.semanticVersion}
+            </span>
+            <span>{graphVersion.changeSummary}</span>
+          </div>
+        )}
       </section>
       {nodes.length ? (
         <section className="panel overflow-hidden">
