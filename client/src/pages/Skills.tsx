@@ -24,6 +24,59 @@ export default function Skills() {
   const prerequisiteEdges = edges.filter(
     edge => edge.relationType === "prerequisite_of"
   );
+  const prerequisiteNodeIds = new Set(
+    prerequisiteEdges.flatMap(edge => [edge.fromSkillId, edge.toSkillId])
+  );
+  const graphNodes = nodes.filter(node => prerequisiteNodeIds.has(node.id));
+  const incomingPrerequisites = new Map<number, number[]>();
+  for (const edge of prerequisiteEdges) {
+    incomingPrerequisites.set(edge.toSkillId, [
+      ...(incomingPrerequisites.get(edge.toSkillId) ?? []),
+      edge.fromSkillId,
+    ]);
+  }
+  const depthBySkillId = new Map<number, number>();
+  const resolving = new Set<number>();
+  const getDepth = (skillId: number): number => {
+    const existing = depthBySkillId.get(skillId);
+    if (existing !== undefined) return existing;
+    if (resolving.has(skillId)) return 0;
+    resolving.add(skillId);
+    const predecessors = incomingPrerequisites.get(skillId) ?? [];
+    const depth = predecessors.length
+      ? Math.max(...predecessors.map(getDepth)) + 1
+      : 0;
+    resolving.delete(skillId);
+    depthBySkillId.set(skillId, depth);
+    return depth;
+  };
+  for (const node of graphNodes) getDepth(node.id);
+  const nodesByDepth = new Map<number, typeof graphNodes>();
+  for (const node of graphNodes) {
+    const depth = getDepth(node.id);
+    nodesByDepth.set(depth, [...(nodesByDepth.get(depth) ?? []), node]);
+  }
+  const graphLayout = new Map<number, { x: number; y: number }>();
+  const columnWidth = 220;
+  const rowHeight = 78;
+  const graphHeight = Math.max(
+    160,
+    ...Array.from(nodesByDepth.values()).map(
+      column => column.length * rowHeight + 36
+    )
+  );
+  for (const [depth, column] of Array.from(nodesByDepth.entries())) {
+    column.forEach((node, index) => {
+      graphLayout.set(node.id, {
+        x: depth * columnWidth + 18,
+        y: index * rowHeight + 26,
+      });
+    });
+  }
+  const graphWidth = Math.max(
+    480,
+    (Math.max(0, ...Array.from(nodesByDepth.keys())) + 1) * columnWidth + 18
+  );
   return (
     <div className="space-y-7">
       <section>
@@ -108,6 +161,83 @@ export default function Skills() {
                   </div>
                 </div>
               )
+          )}
+          {prerequisiteEdges.length > 0 && (
+            <div className="mt-6 border-t border-white/[.06] pt-5">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="eyebrow">DEPENDENCY GRAPH</p>
+                <p className="text-xs text-slate-500">
+                  Current version · arrows point toward the dependent skill
+                </p>
+              </div>
+              <div className="mt-3 overflow-x-auto rounded-xl border border-white/[.06] bg-white/[.015] p-3">
+                <svg
+                  className="min-w-[480px]"
+                  viewBox={`0 0 ${graphWidth} ${graphHeight}`}
+                  role="img"
+                  aria-label={`${prerequisiteEdges.length} prerequisite relationships in taxonomy version ${graphVersion?.semanticVersion ?? "unavailable"}`}
+                >
+                  <defs>
+                    <marker
+                      id="skill-graph-arrow"
+                      markerWidth="7"
+                      markerHeight="7"
+                      refX="6"
+                      refY="3.5"
+                      orient="auto"
+                    >
+                      <path d="M0,0 L7,3.5 L0,7 Z" fill="#818cf8" />
+                    </marker>
+                  </defs>
+                  {prerequisiteEdges.map(edge => {
+                    const from = graphLayout.get(edge.fromSkillId);
+                    const to = graphLayout.get(edge.toSkillId);
+                    if (!from || !to) return null;
+                    return (
+                      <line
+                        key={edge.id}
+                        x1={from.x + 170}
+                        y1={from.y + 21}
+                        x2={to.x - 8}
+                        y2={to.y + 21}
+                        stroke="#818cf8"
+                        strokeOpacity="0.75"
+                        strokeWidth="1.5"
+                        markerEnd="url(#skill-graph-arrow)"
+                      />
+                    );
+                  })}
+                  {graphNodes.map(node => {
+                    const position = graphLayout.get(node.id)!;
+                    return (
+                      <g key={node.id} tabIndex={0}>
+                        <rect
+                          x={position.x}
+                          y={position.y}
+                          width="170"
+                          height="42"
+                          rx="9"
+                          fill="#111827"
+                          stroke={node.color}
+                          strokeOpacity="0.8"
+                        />
+                        <text
+                          x={position.x + 11}
+                          y={position.y + 25}
+                          fill="#e2e8f0"
+                          fontSize="11"
+                        >
+                          {node.title.length > 24
+                            ? `${node.title.slice(0, 21)}…`
+                            : node.title}
+                        </text>
+                        <title>{node.title}</title>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
           )}
           <div className="mt-6 border-t border-white/[.06] pt-5">
             <p className="eyebrow">PREREQUISITE PATHS</p>

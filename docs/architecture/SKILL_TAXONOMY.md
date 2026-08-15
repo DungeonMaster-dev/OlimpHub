@@ -134,6 +134,8 @@ erDiagram
 
 P1-706 supplies those reasons directly from the deterministic result. `insufficient_direct_evidence` reports only the count against the two-solved threshold. Estimated results rank up to three non-zero contributors among direct solved evidence, problem difficulty, deliberate attempts, released-hint adjustment, recent practice and bounded `related_to` context. The reason projection contains no problem statement, note, hint content, code or full solution.
 
+P1-707 renders the current published snapshot’s verified `prerequisite_of` edges as a layered SVG graph. Arrow direction always points toward the dependent skill, and node labels retain the approved skill title. The pre-existing textual prerequisite-path list remains below the graph as a readable fallback; neither visual form creates or infers relationships not contained in the versioned edge snapshot.
+
 ## 9. Управление изменениями и качество графа
 
 Новая версия карты публикуется только после проверки: уникальности stable key, валидных локалей, отсутствия циклов в prerequisite-графе, отсутствия self-edge, понятного определения новых навыков и миграционной заметки. Удаление навыка заменяется `deprecated`-статусом и relation `replaced_by`; старые отчёты остаются читаемыми.
