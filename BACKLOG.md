@@ -89,7 +89,7 @@
 - [x] P1-402 Import rating and contest history. The official `user.rating` adapter normalizes public contest-rating facts; a managed migration persists them idempotently by user, contest and update time; protected sync records activity and Settings exposes progress/error feedback. Repeated-upsert regression passes; final lint has zero errors and formatting passes.
 - [x] P1-403 Import submissions and verdicts. Public `user.status` pages are normalized without source code, collected past the durable cursor with overlap protection, upserted by source submission ID, and exposed only through owner-scoped verdict history with pagination, filters and canonical problem links. Adapter-to-collector regressions and visual history audit pass.
 - [x] P1-404 Map external problems to canonical problems. Codeforces submission import resolves `problemId` only from a source-scoped stable external key; unknown keys remain unmapped rather than being guessed from title, URL or tags. Domain regression and final quality gates pass.
-- [ ] P1-405 Implement background profile synchronization.
+- [~] P1-405 Implement background profile synchronization. Daily 03:00 UTC opt-in Heartbeat lifecycle, task-UID-bound callback, durable per-link state and retry-safe callback behavior are implemented; final quality gates and production publication/activation remain.
 - [ ] P1-406 Implement rating/progress timeline.
 - [ ] P1-407 Handle API failures, rate limits and partial synchronization.
 - [ ] P1-408 Add synchronization tests.

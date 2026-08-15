@@ -85,6 +85,8 @@ P1-402 импортирует публичную историю `user.rating` к
 
 P1-404 сопоставляет `user.status` с catalog problem только по устойчивой паре `(sourceId, externalKey)`: для Codeforces это `codeforces` и ключ вида `contestId-index`. Lookup ограничен тем же source до построения map. Если каталог ещё не знает такой ключ, `external_submissions.problemId` остаётся `NULL`; sync не подбирает похожую задачу по названию, URL или тегам и не выполняет destructive merge.
 
+P1-405 добавляет opt-in ежедневную profile sync в 03:00 UTC. Каждый привязанный handle хранит `scheduleCronTaskUid`, enable state и время последнего успешного запуска. Cron callback аутентифицируется как scheduled caller, находит link только по подтверждённому task UID, а затем последовательно запускает уже проверенные idempotent imports public verdicts и rating history. Неработающий/удалённый link возвращает 2xx skip; временная ошибка, rate limit или неполная синхронизация возвращают 5xx, поэтому scheduler применяет свой retry policy. Job нельзя включать до публикации сайта: callback использует production URL.
+
 ### Минимальный контракт адаптера
 
 P1-301 реализует базовый `ProblemSourceAdapter` в `server/sources/types.ts` и `CodeforcesAdapter` в `server/sources/codeforces.ts`. В текущем контракте доступны `fetchProblemSnapshot` и `fetchSubmissionsPage`; обе операции возвращают типизированный результат `success | retryable_failure | permanent_failure` с точным временем наблюдения. Router использует нормализованные данные адаптера, а не собственный парсер Codeforces. Операции контестов, публичного профиля и рейтинга остаются отдельными последующими расширениями интерфейса.

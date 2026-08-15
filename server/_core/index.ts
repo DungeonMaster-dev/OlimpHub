@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { logEvent } from "../observability";
 import { getDb } from "../db";
+import { createDailyCodeforcesProfileSyncHandler } from "../scheduled/codeforcesProfileSync";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -80,6 +81,10 @@ async function startServer() {
         .json({ ok: false, reason: "database_unavailable" });
     }
   });
+  app.post(
+    "/api/scheduled/codeforces-profile-sync",
+    createDailyCodeforcesProfileSyncHandler()
+  );
   // tRPC API
   app.use(
     "/api/trpc",

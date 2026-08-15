@@ -1,7 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
+import { parse as parseCookie } from "cookie";
 import { and, asc, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
+import { COOKIE_NAME } from "@shared/const";
 import {
   activityEvents,
   codeforcesLinks,
@@ -23,6 +25,7 @@ import {
   userSettings,
 } from "../../drizzle/schema";
 import { getDb } from "../db";
+import { createHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
   buildAnalyticsEvidence,
@@ -48,6 +51,10 @@ import {
   reconcileCanonicalizationStatus,
 } from "../domain/canonicalization";
 import { summarizeSourceHealth } from "../domain/sourceHealth";
+import {
+  codeforcesProfileSyncJobName,
+  dailyCodeforcesProfileSyncCron,
+} from "../domain/scheduling";
 
 const statusSchema = z.enum([
   "not_started",
@@ -1231,6 +1238,69 @@ export const olimpRouter = router({
           handle: profile.data.displayName,
           verificationStatus: "declared_public" as const,
         };
+      }),
+    setDailyCodeforcesProfileSync: protectedProcedure
+      .input(z.object({ enabled: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const link = (
+          await db
+            .select()
+            .from(codeforcesLinks)
+            .where(eq(codeforcesLinks.userId, ctx.user.id))
+            .limit(1)
+        )[0];
+        if (!link) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "Link a public Codeforces handle before enabling daily sync.",
+          });
+        }
+        const sessionToken =
+          parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
+        if (input.enabled && !link.scheduleCronTaskUid) {
+          const job = await createHeartbeatJob(
+            {
+              name: codeforcesProfileSyncJobName(link.id),
+              cron: dailyCodeforcesProfileSyncCron,
+              path: "/api/scheduled/codeforces-profile-sync",
+              description: `Daily public Codeforces profile sync for link ${link.id}`,
+            },
+            sessionToken
+          );
+          await db
+            .update(codeforcesLinks)
+            .set({
+              dailySyncEnabled: "enabled",
+              scheduleCronTaskUid: job.taskUid,
+            })
+            .where(eq(codeforcesLinks.id, link.id));
+          return {
+            enabled: true,
+            nextExecutionAt: job.nextExecutionAt ?? null,
+          };
+        }
+        if (link.scheduleCronTaskUid) {
+          const result = await updateHeartbeatJob(
+            link.scheduleCronTaskUid,
+            { enable: input.enabled },
+            sessionToken
+          );
+          await db
+            .update(codeforcesLinks)
+            .set({ dailySyncEnabled: input.enabled ? "enabled" : "disabled" })
+            .where(eq(codeforcesLinks.id, link.id));
+          return {
+            enabled: input.enabled,
+            nextExecutionAt: result.nextExecutionAt ?? null,
+          };
+        }
+        await db
+          .update(codeforcesLinks)
+          .set({ dailySyncEnabled: "disabled" })
+          .where(eq(codeforcesLinks.id, link.id));
+        return { enabled: false, nextExecutionAt: null };
       }),
   }),
 

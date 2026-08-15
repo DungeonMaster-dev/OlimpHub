@@ -513,6 +513,11 @@ export const codeforcesLinks = mysqlTable(
     syncConsent: mysqlEnum("syncConsent", ["enabled", "disabled"])
       .default("enabled")
       .notNull(),
+    dailySyncEnabled: mysqlEnum("dailySyncEnabled", ["enabled", "disabled"])
+      .default("disabled")
+      .notNull(),
+    scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+    dailySyncLastRunAt: timestamp("dailySyncLastRunAt"),
     lastSyncedAt: timestamp("lastSyncedAt"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -520,6 +525,7 @@ export const codeforcesLinks = mysqlTable(
   table => [
     uniqueIndex("codeforces_links_user_unique").on(table.userId),
     uniqueIndex("codeforces_links_handle_unique").on(table.normalizedHandle),
+    index("codeforces_links_daily_sync_task_idx").on(table.scheduleCronTaskUid),
   ]
 );
 

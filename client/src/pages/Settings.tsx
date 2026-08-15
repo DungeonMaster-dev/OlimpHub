@@ -12,7 +12,12 @@ type InitialSettings = {
     analyticsPeriodDays: number;
     updatedAt: Date;
   };
-  codeforces: { handle: string; verificationStatus: string } | null;
+  codeforces: {
+    handle: string;
+    verificationStatus: string;
+    dailySyncEnabled: "enabled" | "disabled";
+    dailySyncLastRunAt: Date | null;
+  } | null;
 };
 
 export default function Settings() {
@@ -49,6 +54,10 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
   const sync = trpc.olimp.codeforces.syncSubmissions.useMutation();
   const syncRatingHistory =
     trpc.olimp.codeforces.syncRatingHistory.useMutation();
+  const dailySync =
+    trpc.olimp.settings.setDailyCodeforcesProfileSync.useMutation({
+      onSuccess: () => utils.olimp.settings.get.invalidate(),
+    });
   return (
     <div className="max-w-4xl space-y-7">
       <section>
@@ -131,6 +140,30 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
               {syncRatingHistory.error && (
                 <p className="mt-2 text-xs text-rose-200">
                   {syncRatingHistory.error.message}
+                </p>
+              )}
+              <button
+                onClick={() =>
+                  dailySync.mutate({
+                    enabled: initial.codeforces!.dailySyncEnabled !== "enabled",
+                  })
+                }
+                disabled={dailySync.isPending}
+                className="mt-3 block text-indigo-200 hover:text-white"
+              >
+                {dailySync.isPending
+                  ? "Updating daily sync…"
+                  : initial.codeforces.dailySyncEnabled === "enabled"
+                    ? "Pause daily profile sync"
+                    : "Enable daily profile sync"}
+              </button>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Runs once per day after the site is published. It imports only
+                public verdicts and rating history for this declared handle.
+              </p>
+              {dailySync.error && (
+                <p className="mt-2 text-xs text-rose-200">
+                  {dailySync.error.message}
                 </p>
               )}
             </div>
