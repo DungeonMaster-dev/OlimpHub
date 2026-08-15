@@ -20,6 +20,9 @@ The protected, structured AI draft proposal and its explicit editable handoff
 added in P1-905 are specified in
 [AI_CONTEST_GENERATION.md](./AI_CONTEST_GENERATION.md).
 
+The persisted-evidence-only contest fact summary added in P1-906 is specified
+in [CONTEST_PERFORMANCE_ANALYSIS.md](./CONTEST_PERFORMANCE_ANALYSIS.md).
+
 ## Implemented state contract
 
 A contest session begins as `draft`, may become `active`, and finishes as `completed` or `archived`. Its ordered items are `queued`, `active`, `completed` or `skipped`. Starting an owned draft activates exactly the first queued item. Only one item may be active; clients can submit only terminal resolution states for that item. A terminal current-item transition promotes the next queued item server-side, while completion requires every item to be terminal.

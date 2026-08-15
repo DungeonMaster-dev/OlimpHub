@@ -54,6 +54,38 @@ vi.mock("@/lib/trpc", () => ({
                 totalScore: mocks.completedSession ? 100 : 0,
                 totalPenaltyMinutes: mocks.completedSession ? 12 : 0,
               },
+              performance: {
+                calculationVersion: "contest-performance-v1",
+                status: mocks.completedSession
+                  ? "completed"
+                  : mocks.expiredSession
+                    ? "expired"
+                    : "active",
+                totalItems: 2,
+                completedItems: mocks.completedSession ? 1 : 0,
+                skippedItems: mocks.completedSession ? 1 : 0,
+                unfinishedItems: mocks.completedSession ? 0 : 2,
+                completionPercentage: mocks.completedSession ? 100 : 0,
+                elapsedSeconds: mocks.completedSession
+                  ? 630
+                  : mocks.expiredSession
+                    ? 7_200
+                    : 60,
+                elapsedEvidence:
+                  mocks.completedSession || mocks.expiredSession
+                    ? "terminal_timestamp"
+                    : "server_observation",
+                validTimedCompletedItems: mocks.completedSession ? 1 : 0,
+                unavailableTimedCompletedItems: 0,
+                score: {
+                  calculationVersion: "completion-time-v1",
+                  available: true,
+                  completedItems: mocks.completedSession ? 1 : 0,
+                  unscoredCompletedItems: 0,
+                  totalScore: mocks.completedSession ? 100 : 0,
+                  totalPenaltyMinutes: mocks.completedSession ? 12 : 0,
+                },
+              },
               items: [
                 {
                   item: {
@@ -140,11 +172,13 @@ describe("contest session lifecycle UI", () => {
     expect(screen.getByText("SESSION COMPLETE")).toBeTruthy();
     expect(screen.getByText("COMPLETED")).toBeTruthy();
     expect(screen.getByText("SKIPPED")).toBeTruthy();
-    expect(screen.getByText("100%")).toBeTruthy();
+    expect(screen.getAllByText("100%")).not.toHaveLength(0);
     expect(screen.getByText("100")).toBeTruthy();
     expect(screen.getByText("12 min")).toBeTruthy();
-    expect(screen.queryByText(/rank/i)).toBeNull();
-    expect(screen.getByText(/does not infer performance/i)).toBeTruthy();
+    expect(screen.getByText("CONTEST FACTS")).toBeTruthy();
+    expect(screen.getByText("00:10:30")).toBeTruthy();
+    expect(screen.getByText("Terminal timestamp")).toBeTruthy();
+    expect(screen.getAllByText(/does not infer rank/i)).not.toHaveLength(0);
   });
 
   it("renders the server-materialized expiration state instead of allowing another advance", () => {
@@ -152,6 +186,8 @@ describe("contest session lifecycle UI", () => {
     const screen = render(<ContestSession />);
 
     expect(screen.getByText("TIME EXPIRED")).toBeTruthy();
+    expect(screen.getByText("CONTEST FACTS")).toBeTruthy();
+    expect(screen.getAllByText("02:00:00")).not.toHaveLength(0);
     expect(screen.queryByRole("button", { name: "Complete item" })).toBeNull();
   });
 });

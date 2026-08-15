@@ -18,6 +18,14 @@ function formatRemainingTime(totalSeconds: number) {
   return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
+function formatElapsedTime(totalSeconds: number | null) {
+  if (totalSeconds === null) return "Unavailable";
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
 export default function ContestSession() {
   const [, params] = useRoute("/contests/:id");
   const sessionId = Number(params?.id);
@@ -86,8 +94,8 @@ export default function ContestSession() {
             {detail.data.session.title}
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-slate-400">
-            Ordered problem lifecycle with a server-derived deadline. Scoring
-            and penalties are not part of this session view.
+            Ordered problem lifecycle with a server-derived deadline, factual
+            score and elapsed-time penalty.
           </p>
           {detail.data.timer.expiresAt ? (
             <div className="mt-5 inline-flex items-end gap-3 rounded-2xl border border-amber-200/15 bg-amber-100/[.04] px-4 py-3">
@@ -145,6 +153,46 @@ export default function ContestSession() {
         </section>
       ) : null}
 
+      {detail.data.session.status === "completed" || isExpired ? (
+        <section className="panel">
+          <p className="eyebrow">CONTEST FACTS</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-4">
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">ELAPSED</p>
+              <p className="mt-2 font-mono text-lg text-slate-100">
+                {formatElapsedTime(detail.data.performance.elapsedSeconds)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">RESOLVED</p>
+              <p className="mt-2 text-lg text-slate-100">
+                {detail.data.performance.completionPercentage}%
+              </p>
+            </div>
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">TIMED COMPLETIONS</p>
+              <p className="mt-2 text-lg text-slate-100">
+                {detail.data.performance.validTimedCompletedItems}/
+                {detail.data.performance.completedItems}
+              </p>
+            </div>
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">EVIDENCE</p>
+              <p className="mt-2 text-sm text-slate-200">
+                {detail.data.performance.elapsedEvidence ===
+                "terminal_timestamp"
+                  ? "Terminal timestamp"
+                  : "Unavailable"}
+              </p>
+            </div>
+          </div>
+          <p className="mt-4 text-xs leading-5 text-slate-500">
+            This is a factual summary of persisted contest evidence. It does not
+            infer rank, rating, skill or problem quality.
+          </p>
+        </section>
+      ) : null}
+
       {isExpired ? (
         <section className="panel text-center">
           <p className="eyebrow">TIME EXPIRED</p>
@@ -152,8 +200,8 @@ export default function ContestSession() {
             This contest can no longer advance.
           </h2>
           <p className="mt-2 text-sm text-slate-500">
-            The deadline is persisted by the server. No score, penalty or
-            performance conclusion has been calculated.
+            The deadline is persisted by the server. Factual score and timing
+            evidence are shown above without a rank or performance conclusion.
           </p>
         </section>
       ) : active ? (
@@ -230,7 +278,8 @@ export default function ContestSession() {
             Every contest item has been resolved.
           </h2>
           <p className="mt-2 text-sm text-slate-500">
-            This is a factual sequence summary; it does not infer performance.
+            This is a factual sequence and timing summary; it does not infer
+            rank, rating or skill.
           </p>
           <div className="mx-auto mt-6 grid max-w-lg grid-cols-3 gap-3 text-left">
             <div className="rounded-xl bg-white/[.04] p-3">

@@ -5,6 +5,7 @@ import { and, asc, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { editorActiveIntervalSeconds } from "@shared/activityTracking";
+import { summarizeContestPerformance } from "@shared/contestPerformance";
 import {
   activityEvents,
   codeforcesLinks,
@@ -1927,6 +1928,13 @@ export const olimpRouter = router({
           .innerJoin(problems, eq(contestItems.problemId, problems.id))
           .where(eq(contestItems.sessionId, session.id))
           .orderBy(asc(contestItems.position));
+        const scoring = summarizeContestScore({
+          startedAt: timedSession.startedAt,
+          items: items.map(({ item }) => ({
+            status: item.status,
+            completedAt: item.completedAt,
+          })),
+        });
         return {
           session: timedSession,
           items,
@@ -1939,12 +1947,18 @@ export const olimpRouter = router({
             ),
             isExpired: timedSession.status === "expired",
           },
-          scoring: summarizeContestScore({
+          scoring,
+          performance: summarizeContestPerformance({
+            status: timedSession.status,
             startedAt: timedSession.startedAt,
+            completedAt: timedSession.completedAt,
+            expiresAt: timedSession.expiresAt,
+            observedAt: new Date(),
             items: items.map(({ item }) => ({
               status: item.status,
               completedAt: item.completedAt,
             })),
+            scoring,
           }),
         };
       }),
