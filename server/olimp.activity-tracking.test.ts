@@ -118,6 +118,31 @@ describe("workspace page activity tracking", () => {
     expect(JSON.stringify(mocks.writes)).not.toContain("private note");
   });
 
+  it("records a server-bounded active editor heartbeat without accepting a client duration", async () => {
+    mocks.limitedResults = [
+      [{ id: 1, userId: 1, activityTracking: "enabled" }],
+      [{ id: 9 }],
+    ];
+
+    await expect(
+      appRouter
+        .createCaller(userContext())
+        .olimp.workspace.recordEditorActivity({
+          problemId: 9,
+          phase: "active",
+          clientEventId: "a39a5741-403c-455a-8897-5be3aa3ab33b",
+        })
+    ).resolves.toEqual({ recorded: true, reason: null });
+    expect(mocks.writes).toContainEqual(
+      expect.objectContaining({
+        userId: 1,
+        problemId: 9,
+        eventType: "note_editor_active",
+        metadata: { surface: "workspace_note", intervalSeconds: 60 },
+      })
+    );
+  });
+
   it("deduplicates the same client page-view event and records a new revisit", async () => {
     mocks.limitedResults = [
       [{ id: 1, userId: 1, activityTracking: "enabled" }],

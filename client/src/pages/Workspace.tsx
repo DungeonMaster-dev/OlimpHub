@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useRoute } from "wouter";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ArrowLeft,
   Check,
@@ -12,6 +12,10 @@ import {
   NotebookPen,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import {
+  editorActiveHeartbeatMs,
+  editorIdleAfterMs,
+} from "@shared/activityTracking";
 import { ErrorState } from "./Home";
 
 export default function Workspace() {
@@ -29,6 +33,9 @@ export default function Workspace() {
     trpc.olimp.workspace.recordPageActivity.useMutation();
   const { mutate: recordEditorActivity } =
     trpc.olimp.workspace.recordEditorActivity.useMutation();
+  const editorFocusedRef = useRef(false);
+  const editorIdleRef = useRef(false);
+  const lastEditorInputAtRef = useRef(0);
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const [editedNote, setEditedNote] = useState<string | null>(null);
   const [hint, setHint] = useState<{ level: number; content: string } | null>(
@@ -59,6 +66,29 @@ export default function Workspace() {
       clientEventId: crypto.randomUUID(),
     });
   }, [detail.data?.problem.id, recordPageActivity]);
+  useEffect(() => {
+    const heartbeat = window.setInterval(() => {
+      if (!editorFocusedRef.current) return;
+      const elapsedMs = Date.now() - lastEditorInputAtRef.current;
+      if (elapsedMs >= editorIdleAfterMs) {
+        if (!editorIdleRef.current) {
+          recordEditorActivity({
+            problemId,
+            phase: "idle",
+            clientEventId: crypto.randomUUID(),
+          });
+          editorIdleRef.current = true;
+        }
+        return;
+      }
+      recordEditorActivity({
+        problemId,
+        phase: "active",
+        clientEventId: crypto.randomUUID(),
+      });
+    }, editorActiveHeartbeatMs);
+    return () => window.clearInterval(heartbeat);
+  }, [problemId, recordEditorActivity]);
   if (detail.isLoading)
     return <div className="h-64 animate-pulse rounded-3xl bg-white/[.04]" />;
   if (detail.error || !detail.data)
@@ -134,21 +164,38 @@ export default function Workspace() {
             <textarea
               className="min-h-52 w-full resize-y rounded-xl border border-white/[.08] bg-black/15 p-4 text-sm leading-6 text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-indigo-300/50"
               value={note}
-              onChange={event => setEditedNote(event.target.value)}
-              onFocus={() =>
+              onChange={event => {
+                setEditedNote(event.target.value);
+                lastEditorInputAtRef.current = Date.now();
+                if (editorIdleRef.current) {
+                  recordEditorActivity({
+                    problemId,
+                    phase: "active",
+                    clientEventId: crypto.randomUUID(),
+                  });
+                  editorIdleRef.current = false;
+                }
+              }}
+              onFocus={() => {
+                editorFocusedRef.current = true;
+                editorIdleRef.current = false;
+                lastEditorInputAtRef.current = Date.now();
                 recordEditorActivity({
                   problemId,
                   phase: "focused",
                   clientEventId: crypto.randomUUID(),
-                })
-              }
-              onBlur={() =>
+                });
+              }}
+              onBlur={() => {
+                if (!editorFocusedRef.current) return;
+                editorFocusedRef.current = false;
+                editorIdleRef.current = false;
                 recordEditorActivity({
                   problemId,
                   phase: "blurred",
                   clientEventId: crypto.randomUUID(),
-                })
-              }
+                });
+              }}
               placeholder="What have you tried? Which invariant or edge case is still unclear?"
             />
             <div className="mt-3 flex justify-end">

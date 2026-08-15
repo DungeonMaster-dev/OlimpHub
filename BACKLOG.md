@@ -114,7 +114,7 @@
 - [x] P1-603 Track submissions and verdict events. Codeforces sync records one compact verdict-count summary rather than per-submission activity events; domain and router regressions pass with final quality gates.
 - [x] P1-604 Track hints/editorial interactions. Progressive hint release records an owner-scoped level-only activity fact and never copies hint content into metadata; privacy regression and final quality gates pass.
 - [~] P1-605 Track training and contest sessions. Training creation records a compact start fact; terminal item changes record owner-scoped factual activity and close the session once every item is completed or skipped. Contest-session tracking remains pending until P1-208 supplies a real contest lifecycle to track.
-- [ ] P1-606 Distinguish active/focused/idle time.
+- [x] P1-606 Distinguish active/focused/idle time. The private workspace editor records focus and blur boundaries, server-bounded 60-second active heartbeats, and a single idle transition after two minutes without input; events contain only an owner-scoped problem reference, surface and server-defined interval metadata. Router and real Workspace timer regressions pass.
 - [ ] P1-607 Implement activity timeline.
 - [ ] P1-608 Implement daily/weekly/monthly statistics.
 - [ ] P1-609 Implement streak calculation.

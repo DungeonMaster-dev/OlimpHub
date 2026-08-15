@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from "@testing-library/react";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -148,5 +154,27 @@ describe("Workspace page activity lifecycle", () => {
     expect(JSON.stringify(mocks.recordEditorActivity.mock.calls)).not.toContain(
       "private note"
     );
+  });
+
+  it("emits bounded active then idle phases while the editor stays focused without recording note text", async () => {
+    vi.useFakeTimers();
+    const screen = render(<Workspace />);
+    const editor = screen.getByPlaceholderText(
+      "What have you tried? Which invariant or edge case is still unclear?"
+    );
+    fireEvent.focus(editor);
+
+    act(() => vi.advanceTimersByTime(60_000));
+    act(() => vi.advanceTimersByTime(60_000));
+
+    expect(mocks.recordEditorActivity.mock.calls).toEqual([
+      [expect.objectContaining({ phase: "focused" })],
+      [expect.objectContaining({ phase: "active" })],
+      [expect.objectContaining({ phase: "idle" })],
+    ]);
+    expect(JSON.stringify(mocks.recordEditorActivity.mock.calls)).not.toContain(
+      "private note"
+    );
+    vi.useRealTimers();
   });
 });

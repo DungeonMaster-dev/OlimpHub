@@ -4,6 +4,7 @@ import { parse as parseCookie } from "cookie";
 import { and, asc, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
+import { editorActiveIntervalSeconds } from "@shared/activityTracking";
 import {
   activityEvents,
   codeforcesLinks,
@@ -652,7 +653,7 @@ export const olimpRouter = router({
       .input(
         z.object({
           problemId: z.number().int().positive(),
-          phase: z.enum(["focused", "blurred"]),
+          phase: z.enum(["focused", "active", "idle", "blurred"]),
           clientEventId: z.string().uuid(),
         })
       )
@@ -679,7 +680,13 @@ export const olimpRouter = router({
           userId: ctx.user.id,
           problemId: problem.id,
           eventType: `note_editor_${input.phase}`,
-          metadata: { surface: "workspace_note" },
+          metadata:
+            input.phase === "active"
+              ? {
+                  surface: "workspace_note",
+                  intervalSeconds: editorActiveIntervalSeconds,
+                }
+              : { surface: "workspace_note" },
           clientEventId: input.clientEventId,
         });
         return { recorded: true, reason: null };
