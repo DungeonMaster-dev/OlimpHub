@@ -142,6 +142,27 @@ export const skillEdges = mysqlTable(
   ]
 );
 
+export const skillEdgeGraphMemberships = mysqlTable(
+  "skill_edge_graph_memberships",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    graphVersionId: int("graphVersionId")
+      .notNull()
+      .references(() => skillGraphVersions.id, { onDelete: "cascade" }),
+    skillEdgeId: int("skillEdgeId")
+      .notNull()
+      .references(() => skillEdges.id, { onDelete: "restrict" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => [
+    uniqueIndex("skill_edge_graph_memberships_version_edge_unique").on(
+      table.graphVersionId,
+      table.skillEdgeId
+    ),
+    index("skill_edge_graph_memberships_edge_idx").on(table.skillEdgeId),
+  ]
+);
+
 export const problems = mysqlTable(
   "problems",
   {

@@ -17,6 +17,7 @@ import {
   problems,
   problemSkills,
   skillEdges,
+  skillEdgeGraphMemberships,
   skillGraphVersions,
   skillGraphMemberships,
   skills,
@@ -1218,7 +1219,7 @@ export const olimpRouter = router({
       if (!graphVersion) {
         return { graphVersion: null, nodes: [], edges: [], links: [] };
       }
-      const [nodeRows, edges, links] = await Promise.all([
+      const [nodeRows, edgeRows, links] = await Promise.all([
         db
           .select({ node: skills })
           .from(skillGraphMemberships)
@@ -1230,7 +1231,14 @@ export const olimpRouter = router({
             )
           )
           .orderBy(asc(skills.title)),
-        db.select().from(skillEdges),
+        db
+          .select({ edge: skillEdges })
+          .from(skillEdgeGraphMemberships)
+          .innerJoin(
+            skillEdges,
+            eq(skillEdgeGraphMemberships.skillEdgeId, skillEdges.id)
+          )
+          .where(eq(skillEdgeGraphMemberships.graphVersionId, graphVersion.id)),
         db
           .select({ link: problemSkills, problem: problems })
           .from(skillGraphMemberships)
@@ -1241,6 +1249,7 @@ export const olimpRouter = router({
           .innerJoin(problems, eq(problemSkills.problemId, problems.id)),
       ]);
       const nodes = nodeRows.map(({ node }) => node);
+      const edges = edgeRows.map(({ edge }) => edge);
       const nodeIds = new Set(nodes.map(node => node.id));
       return {
         graphVersion: {

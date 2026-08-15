@@ -70,7 +70,13 @@ describe("skills.map taxonomy version", () => {
           })),
         })),
       })
-      .mockReturnValueOnce({ from: vi.fn(async () => edges) })
+      .mockReturnValueOnce({
+        from: vi.fn(() => ({
+          innerJoin: vi.fn(() => ({
+            where: vi.fn(async () => edges.map(edge => ({ edge }))),
+          })),
+        })),
+      })
       .mockReturnValueOnce({
         from: vi.fn(() => ({
           innerJoin: vi.fn(() => ({ innerJoin: vi.fn(async () => links) })),
