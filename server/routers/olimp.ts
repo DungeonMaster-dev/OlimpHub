@@ -62,7 +62,10 @@ import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
   adaptiveTrainingCalculationVersion,
   calculateDifficultyProgression,
+  calculateExpectedSolveTime,
   difficultyProgressionCalculationVersion,
+  expectedSolveTimeCalculationVersion,
+  minimumCompletedAttemptsForTimeEstimate,
   minimumSolvedDifficultiesForProgression,
   selectAdaptiveTrainingProblems,
 } from "../domain/adaptiveTraining";
@@ -1060,52 +1063,71 @@ export const olimpRouter = router({
           return {
             calculationVersion: adaptiveTrainingCalculationVersion,
             difficultyProgressionCalculationVersion,
+            expectedSolveTimeCalculationVersion,
             progression: calculateDifficultyProgression([]),
+            expectedSolveTime: calculateExpectedSolveTime([]),
             recommendations: [],
           };
         }
         const candidateIds = candidates.map(problem => problem.id);
-        const [progressRows, activeTrainingRows, solvedDifficultyRows] =
-          await Promise.all([
-            db
-              .select()
-              .from(userProblemProgress)
-              .where(
-                and(
-                  eq(userProblemProgress.userId, ctx.user.id),
-                  inArray(userProblemProgress.problemId, candidateIds)
-                )
-              ),
-            db
-              .select({ problemId: trainingItems.problemId })
-              .from(trainingItems)
-              .innerJoin(
-                trainingSessions,
-                eq(trainingItems.sessionId, trainingSessions.id)
+        const [
+          progressRows,
+          activeTrainingRows,
+          solvedDifficultyRows,
+          completedAttemptRows,
+        ] = await Promise.all([
+          db
+            .select()
+            .from(userProblemProgress)
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                inArray(userProblemProgress.problemId, candidateIds)
               )
-              .where(
-                and(
-                  eq(trainingSessions.userId, ctx.user.id),
-                  eq(trainingSessions.status, "active"),
-                  inArray(trainingItems.status, ["active", "queued"])
-                )
-              ),
-            db
-              .select({ difficulty: problems.difficulty })
-              .from(userProblemProgress)
-              .innerJoin(
-                problems,
-                eq(userProblemProgress.problemId, problems.id)
+            ),
+          db
+            .select({ problemId: trainingItems.problemId })
+            .from(trainingItems)
+            .innerJoin(
+              trainingSessions,
+              eq(trainingItems.sessionId, trainingSessions.id)
+            )
+            .where(
+              and(
+                eq(trainingSessions.userId, ctx.user.id),
+                eq(trainingSessions.status, "active"),
+                inArray(trainingItems.status, ["active", "queued"])
               )
-              .where(
-                and(
-                  eq(userProblemProgress.userId, ctx.user.id),
-                  eq(userProblemProgress.status, "solved")
-                )
+            ),
+          db
+            .select({ difficulty: problems.difficulty })
+            .from(userProblemProgress)
+            .innerJoin(problems, eq(userProblemProgress.problemId, problems.id))
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                eq(userProblemProgress.status, "solved")
               )
-              .orderBy(desc(userProblemProgress.solvedAt))
-              .limit(minimumSolvedDifficultiesForProgression),
-          ]);
+            )
+            .orderBy(desc(userProblemProgress.solvedAt))
+            .limit(minimumSolvedDifficultiesForProgression),
+          db
+            .select({
+              startedAt: solvingAttempts.startedAt,
+              endedAt: solvingAttempts.endedAt,
+            })
+            .from(solvingAttempts)
+            .where(
+              and(
+                eq(solvingAttempts.userId, ctx.user.id),
+                eq(solvingAttempts.state, "completed"),
+                eq(solvingAttempts.outcome, "solved"),
+                sql`${solvingAttempts.endedAt} IS NOT NULL`
+              )
+            )
+            .orderBy(desc(solvingAttempts.endedAt))
+            .limit(minimumCompletedAttemptsForTimeEstimate),
+        ]);
         const progressByProblem = new Map(
           progressRows.map(progress => [progress.problemId, progress.status])
         );
@@ -1114,6 +1136,13 @@ export const olimpRouter = router({
         );
         const progression = calculateDifficultyProgression(
           solvedDifficultyRows.map(item => item.difficulty)
+        );
+        const expectedSolveTime = calculateExpectedSolveTime(
+          completedAttemptRows.map(item =>
+            item.endedAt
+              ? item.endedAt.getTime() - item.startedAt.getTime()
+              : null
+          )
         );
         const selected = selectAdaptiveTrainingProblems(
           candidates.map(problem => ({
@@ -1131,7 +1160,9 @@ export const olimpRouter = router({
         return {
           calculationVersion: adaptiveTrainingCalculationVersion,
           difficultyProgressionCalculationVersion,
+          expectedSolveTimeCalculationVersion,
           progression,
+          expectedSolveTime,
           recommendations: selected.map(recommendation => ({
             problem: problemById.get(recommendation.problemId)!,
             ...recommendation,

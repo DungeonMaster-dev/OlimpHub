@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   adaptiveTrainingCalculationVersion,
   calculateDifficultyProgression,
+  calculateExpectedSolveTime,
   difficultyProgressionCalculationVersion,
+  expectedSolveTimeCalculationVersion,
   selectAdaptiveTrainingProblems,
 } from "./adaptiveTraining";
 
@@ -114,6 +116,33 @@ describe("adaptive training selection", () => {
       maxDifficulty: null,
       reason:
         "Need 3 recent solved problems with verified difficulty before setting a progression target.",
+    });
+  });
+
+  it("derives a bounded median elapsed-time estimate from completed attempts only", () => {
+    expect(expectedSolveTimeCalculationVersion).toBe("expected-solve-time-v1");
+    expect(
+      calculateExpectedSolveTime([10 * 60_000, 20 * 60_000, 30 * 60_000])
+    ).toEqual({
+      status: "estimated",
+      sampleSize: 3,
+      expectedMinutes: 20,
+      lowerMinutes: 14,
+      upperMinutes: 26,
+      reason:
+        "Estimate is the median elapsed time across your 3 recent completed attempts with bounded duration.",
+    });
+  });
+
+  it("does not estimate solve time from too few, implausibly short or unbounded attempt durations", () => {
+    expect(calculateExpectedSolveTime([30_000, 15 * 60_000, null])).toEqual({
+      status: "insufficient_evidence",
+      sampleSize: 1,
+      expectedMinutes: null,
+      lowerMinutes: null,
+      upperMinutes: null,
+      reason:
+        "Need 3 completed attempts with bounded elapsed time before estimating solve time.",
     });
   });
 });

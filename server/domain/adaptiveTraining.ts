@@ -2,6 +2,8 @@ export const adaptiveTrainingCalculationVersion = "adaptive-training-v1";
 export const difficultyProgressionCalculationVersion =
   "difficulty-progression-v1";
 export const minimumSolvedDifficultiesForProgression = 3;
+export const expectedSolveTimeCalculationVersion = "expected-solve-time-v1";
+export const minimumCompletedAttemptsForTimeEstimate = 3;
 
 export type AdaptiveTrainingProgressStatus =
   | "not_started"
@@ -47,6 +49,24 @@ export type DifficultyProgression =
       targetDifficulty: null;
       minDifficulty: null;
       maxDifficulty: null;
+      reason: string;
+    };
+
+export type ExpectedSolveTime =
+  | {
+      status: "estimated";
+      sampleSize: number;
+      expectedMinutes: number;
+      lowerMinutes: number;
+      upperMinutes: number;
+      reason: string;
+    }
+  | {
+      status: "insufficient_evidence";
+      sampleSize: number;
+      expectedMinutes: null;
+      lowerMinutes: null;
+      upperMinutes: null;
       reason: string;
     };
 
@@ -176,5 +196,40 @@ export function calculateDifficultyProgression(
     minDifficulty: Math.max(800, targetDifficulty - 200),
     maxDifficulty: Math.min(3500, targetDifficulty + 200),
     reason: `Target is one verified difficulty step above the median of your ${verified.length} most recent solved problems.`,
+  };
+}
+
+export function calculateExpectedSolveTime(
+  completedElapsedMs: Array<number | null | undefined>
+): ExpectedSolveTime {
+  const verified = completedElapsedMs
+    .filter(
+      (elapsed): elapsed is number =>
+        typeof elapsed === "number" &&
+        Number.isFinite(elapsed) &&
+        elapsed >= 60_000 &&
+        elapsed <= 14_400_000
+    )
+    .slice(0, 5);
+  if (verified.length < minimumCompletedAttemptsForTimeEstimate) {
+    return {
+      status: "insufficient_evidence",
+      sampleSize: verified.length,
+      expectedMinutes: null,
+      lowerMinutes: null,
+      upperMinutes: null,
+      reason: `Need ${minimumCompletedAttemptsForTimeEstimate} completed attempts with bounded elapsed time before estimating solve time.`,
+    };
+  }
+  const sorted = [...verified].sort((left, right) => left - right);
+  const medianMs = sorted[Math.floor(sorted.length / 2)]!;
+  const expectedMinutes = Math.max(1, Math.round(medianMs / 60_000));
+  return {
+    status: "estimated",
+    sampleSize: verified.length,
+    expectedMinutes,
+    lowerMinutes: Math.max(1, Math.round(expectedMinutes * 0.7)),
+    upperMinutes: Math.round(expectedMinutes * 1.3),
+    reason: `Estimate is the median elapsed time across your ${verified.length} recent completed attempts with bounded duration.`,
   };
 }

@@ -57,6 +57,11 @@ export default function Training() {
                       ? `Target difficulty ${adaptive.data.progression.targetDifficulty} (range ${adaptive.data.progression.minDifficulty}–${adaptive.data.progression.maxDifficulty}).`
                       : adaptive.data.progression.reason}
                   </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {adaptive.data.expectedSolveTime.status === "estimated"
+                      ? `Expected solve time ${adaptive.data.expectedSolveTime.expectedMinutes} min (typical range ${adaptive.data.expectedSolveTime.lowerMinutes}–${adaptive.data.expectedSolveTime.upperMinutes} min).`
+                      : adaptive.data.expectedSolveTime.reason}
+                  </p>
                 </div>
                 <button
                   type="button"

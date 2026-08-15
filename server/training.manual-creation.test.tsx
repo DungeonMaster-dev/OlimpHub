@@ -16,6 +16,14 @@ const mocks = vi.hoisted(() => ({
     reason:
       "Need 3 recent solved problems with verified difficulty before setting a progression target.",
   },
+  adaptiveExpectedSolveTime: {
+    status: "insufficient_evidence",
+    expectedMinutes: null as number | null,
+    lowerMinutes: null as number | null,
+    upperMinutes: null as number | null,
+    reason:
+      "Need 3 completed attempts with bounded elapsed time before estimating solve time.",
+  },
   catalogueQuery: vi.fn(),
   create: vi.fn(),
   invalidate: vi.fn(),
@@ -49,6 +57,7 @@ vi.mock("@/lib/trpc", () => ({
           useQuery: () => ({
             data: {
               progression: mocks.adaptiveProgression,
+              expectedSolveTime: mocks.adaptiveExpectedSolveTime,
               recommendations: mocks.adaptiveRecommendations,
             },
           }),
@@ -86,6 +95,14 @@ describe("manual training creation UI", () => {
       maxDifficulty: null,
       reason:
         "Need 3 recent solved problems with verified difficulty before setting a progression target.",
+    };
+    mocks.adaptiveExpectedSolveTime = {
+      status: "insufficient_evidence",
+      expectedMinutes: null,
+      lowerMinutes: null,
+      upperMinutes: null,
+      reason:
+        "Need 3 completed attempts with bounded elapsed time before estimating solve time.",
     };
     mocks.catalogueQuery.mockReset();
     mocks.catalogueQuery.mockReturnValue({
@@ -178,6 +195,14 @@ describe("manual training creation UI", () => {
       reason:
         "Target is one verified difficulty step above the median of your 3 most recent solved problems.",
     };
+    mocks.adaptiveExpectedSolveTime = {
+      status: "estimated",
+      expectedMinutes: 20,
+      lowerMinutes: 14,
+      upperMinutes: 26,
+      reason:
+        "Estimate is the median elapsed time across your 3 recent completed attempts with bounded duration.",
+    };
     const screen = render(<Training />);
 
     expect(
@@ -187,6 +212,9 @@ describe("manual training creation UI", () => {
     ).toBeTruthy();
     expect(
       screen.getByText("Target difficulty 1300 (range 1100–1500).")
+    ).toBeTruthy();
+    expect(
+      screen.getByText("Expected solve time 20 min (typical range 14–26 min).")
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Use suggestions" }));
 

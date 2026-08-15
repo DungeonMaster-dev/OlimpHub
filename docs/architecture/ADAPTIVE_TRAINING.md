@@ -24,6 +24,12 @@ The selector considers a bounded catalogue candidate pool and omits problems alr
 
 When fewer than three verified solved difficulties exist, the API returns `insufficient_evidence` with no target or range. The Training UI states this boundary instead of guessing an ability level. The selected session remains entirely user-editable in either state.
 
+## Expected solve time
+
+`expected-solve-time-v1` reads up to five recent owner-scoped attempts that were completed with a solved outcome. It accepts only elapsed wall-clock durations between one minute and four hours, then reports the median and a 70–130% typical range after at least three qualifying attempts. The estimate describes persisted elapsed attempt time; it does not claim to measure uninterrupted concentration.
+
+With fewer than three bounded completed attempts, the endpoint returns `insufficient_evidence` and no duration estimate. The Training UI presents that limitation rather than inventing a forecast.
+
 ## Privacy and future scope
 
 No recommendation reason includes note text, hint content, source-code content or a copied problem statement. Skill-weakness targeting and recent-exposure balancing remain separate backlog work so the selector never overstates thin evidence.

@@ -61,6 +61,20 @@ describe("adaptive training recommendations", () => {
       ],
       [{ problemId: 4 }],
       [{ difficulty: 1200 }, { difficulty: 1400 }, { difficulty: 1000 }],
+      [
+        {
+          startedAt: new Date("2026-08-01T10:00:00Z"),
+          endedAt: new Date("2026-08-01T10:10:00Z"),
+        },
+        {
+          startedAt: new Date("2026-08-02T10:00:00Z"),
+          endedAt: new Date("2026-08-02T10:20:00Z"),
+        },
+        {
+          startedAt: new Date("2026-08-03T10:00:00Z"),
+          endedAt: new Date("2026-08-03T10:30:00Z"),
+        },
+      ],
     ];
 
     await expect(
@@ -75,6 +89,13 @@ describe("adaptive training recommendations", () => {
         targetDifficulty: 1300,
         minDifficulty: 1100,
         maxDifficulty: 1500,
+      },
+      expectedSolveTimeCalculationVersion: "expected-solve-time-v1",
+      expectedSolveTime: {
+        status: "estimated",
+        expectedMinutes: 20,
+        lowerMinutes: 14,
+        upperMinutes: 26,
       },
       recommendations: [
         {
