@@ -4,11 +4,18 @@ import { Empty, ErrorState } from "./Home";
 
 export default function Skills() {
   const map = trpc.olimp.skills.map.useQuery();
+  const mastery = trpc.olimp.skills.mastery.useQuery();
   if (map.error) return <ErrorState message={map.error.message} />;
   if (map.isLoading)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
   const { graphVersion, nodes, edges, links } = map.data!;
   const nodesById = new Map(nodes.map(node => [node.id, node]));
+  const masteryBySkillId = new Map(
+    (mastery.data?.skills ?? []).map(({ skill, mastery: result }) => [
+      skill.id,
+      result,
+    ])
+  );
   const nodesByDomain = {
     algorithms: nodes.filter(node => node.domain === "algorithms"),
     mathematics: nodes.filter(node => node.domain === "mathematics"),
@@ -53,31 +60,46 @@ export default function Skills() {
                     )}
                   </div>
                   <div className="skill-map-grid">
-                    {nodesByDomain[domain].map(node => (
-                      <div
-                        key={node.id}
-                        className="skill-node"
-                        style={{ borderColor: `${node.color}55` }}
-                      >
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: node.color }}
-                        />
-                        <div>
-                          <p className="font-medium text-slate-100">
-                            {node.title}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {
-                              links.filter(
-                                ({ link }) => link.skillId === node.id
-                              ).length
-                            }{" "}
-                            linked problems · {node.domain}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                    {nodesByDomain[domain].map(node =>
+                      (() => {
+                        const result = masteryBySkillId.get(node.id);
+                        const masteryLabel = result
+                          ? result.status === "estimated"
+                            ? `${result.score}% direct evidence · ${result.evidenceCount} solved`
+                            : `Insufficient evidence · ${result.evidenceCount}/${mastery.data?.minimumIndependentSolvedProblems ?? 2} solved`
+                          : mastery.isError
+                            ? "Mastery unavailable"
+                            : "Calculating mastery…";
+                        return (
+                          <div
+                            key={node.id}
+                            className="skill-node"
+                            style={{ borderColor: `${node.color}55` }}
+                          >
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: node.color }}
+                            />
+                            <div>
+                              <p className="font-medium text-slate-100">
+                                {node.title}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {
+                                  links.filter(
+                                    ({ link }) => link.skillId === node.id
+                                  ).length
+                                }{" "}
+                                linked problems · {node.domain}
+                              </p>
+                              <p className="mt-1 text-xs text-indigo-100/75">
+                                {masteryLabel}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    )}
                   </div>
                 </div>
               )

@@ -57,6 +57,13 @@ describe("OlimpHub protected workspace", () => {
     );
   });
 
+  it("rejects anonymous skill-mastery reads before querying private solved evidence", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+    await expect(caller.olimp.skills.mastery()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
   it("rejects anonymous canonicalization changes before reading catalogue data", async () => {
     const caller = appRouter.createCaller(anonymousContext());
     await expect(

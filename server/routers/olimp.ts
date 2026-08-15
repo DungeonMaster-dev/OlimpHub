@@ -60,6 +60,11 @@ import { classifySourceSyncFailure } from "../domain/syncOutcome";
 import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
 import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
+  calculateSkillMastery,
+  minimumIndependentSolvedProblems,
+  skillMasteryCalculationVersion,
+} from "../domain/skillMastery";
+import {
   buildActivityStatistics,
   earliestActivityStatisticsStart,
 } from "../domain/activityStatistics";
@@ -1262,6 +1267,78 @@ export const olimpRouter = router({
           edge => nodeIds.has(edge.fromSkillId) && nodeIds.has(edge.toSkillId)
         ),
         links: links.filter(({ link }) => nodeIds.has(link.skillId)),
+      };
+    }),
+    mastery: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      const graphVersion = (
+        await db
+          .select()
+          .from(skillGraphVersions)
+          .where(eq(skillGraphVersions.status, "published"))
+          .orderBy(desc(skillGraphVersions.publishedAt))
+          .limit(1)
+      )[0];
+      if (!graphVersion) {
+        return {
+          calculationVersion: skillMasteryCalculationVersion,
+          minimumIndependentSolvedProblems,
+          graphVersion: null,
+          skills: [],
+        };
+      }
+      const [nodeRows, evidence] = await Promise.all([
+        db
+          .select({ node: skills })
+          .from(skillGraphMemberships)
+          .innerJoin(skills, eq(skillGraphMemberships.skillId, skills.id))
+          .where(
+            and(
+              eq(skillGraphMemberships.graphVersionId, graphVersion.id),
+              eq(skills.status, "approved")
+            )
+          ),
+        db
+          .select({
+            skillId: problemSkills.skillId,
+            problemId: userProblemProgress.problemId,
+            relevance: problemSkills.relevance,
+          })
+          .from(userProblemProgress)
+          .innerJoin(
+            problemSkills,
+            eq(userProblemProgress.problemId, problemSkills.problemId)
+          )
+          .innerJoin(
+            skillGraphMemberships,
+            and(
+              eq(skillGraphMemberships.skillId, problemSkills.skillId),
+              eq(skillGraphMemberships.graphVersionId, graphVersion.id)
+            )
+          )
+          .where(
+            and(
+              eq(userProblemProgress.userId, ctx.user.id),
+              eq(userProblemProgress.status, "solved")
+            )
+          ),
+      ]);
+      const nodes = nodeRows.map(({ node }) => node);
+      const results = calculateSkillMastery(
+        nodes.map(node => node.id),
+        evidence
+      );
+      const bySkillId = new Map(
+        results.map(result => [result.skillId, result])
+      );
+      return {
+        calculationVersion: skillMasteryCalculationVersion,
+        minimumIndependentSolvedProblems,
+        graphVersion: graphVersion.semanticVersion,
+        skills: nodes.map(skill => ({
+          skill,
+          mastery: bySkillId.get(skill.id)!,
+        })),
       };
     }),
   }),

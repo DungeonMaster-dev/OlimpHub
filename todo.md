@@ -72,3 +72,4 @@
 - [x] Correct P1-701 taxonomy version membership so stable skills can appear in multiple immutable published snapshots before creating a P1-702 mathematics seed.
 - [x] Audit and implement P1-702 mathematics taxonomy after immutable multi-version membership semantics are verified.
 - [x] Implement P1-703 versioned skill dependency graph membership and prerequisite-cycle validation.
+- [x] Implement P1-704 deterministic evidence-backed skill mastery calculation with insufficient-evidence semantics.
