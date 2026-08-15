@@ -9,6 +9,11 @@ export default function Skills() {
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
   const { graphVersion, nodes, edges, links } = map.data!;
   const nodesById = new Map(nodes.map(node => [node.id, node]));
+  const nodesByDomain = {
+    algorithms: nodes.filter(node => node.domain === "algorithms"),
+    mathematics: nodes.filter(node => node.domain === "mathematics"),
+    practice: nodes.filter(node => node.domain === "practice"),
+  };
   const prerequisiteEdges = edges.filter(
     edge => edge.relationType === "prerequisite_of"
   );
@@ -35,30 +40,48 @@ export default function Skills() {
       </section>
       {nodes.length ? (
         <section className="panel overflow-hidden">
-          <div className="skill-map-grid">
-            {nodes.map(node => (
-              <div
-                key={node.id}
-                className="skill-node"
-                style={{ borderColor: `${node.color}55` }}
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: node.color }}
-                />
-                <div>
-                  <p className="font-medium text-slate-100">{node.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {
-                      links.filter(({ link }) => link.skillId === node.id)
-                        .length
-                    }{" "}
-                    linked problems · {node.domain}
-                  </p>
+          {(["algorithms", "mathematics", "practice"] as const).map(
+            domain =>
+              nodesByDomain[domain].length > 0 && (
+                <div key={domain} className="mb-6 last:mb-0">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="eyebrow">{domain.replaceAll("-", " ")}</p>
+                    {domain === "mathematics" && (
+                      <span className="text-xs text-amber-100/80">
+                        taxonomy only · no automatic recommendations
+                      </span>
+                    )}
+                  </div>
+                  <div className="skill-map-grid">
+                    {nodesByDomain[domain].map(node => (
+                      <div
+                        key={node.id}
+                        className="skill-node"
+                        style={{ borderColor: `${node.color}55` }}
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: node.color }}
+                        />
+                        <div>
+                          <p className="font-medium text-slate-100">
+                            {node.title}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {
+                              links.filter(
+                                ({ link }) => link.skillId === node.id
+                              ).length
+                            }{" "}
+                            linked problems · {node.domain}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              )
+          )}
           <div className="mt-6 border-t border-white/[.06] pt-5">
             <p className="eyebrow">PREREQUISITE PATHS</p>
             <div className="mt-3 grid gap-2 md:grid-cols-2">

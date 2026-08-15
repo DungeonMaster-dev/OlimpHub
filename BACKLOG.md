@@ -123,7 +123,7 @@
 # Phase 7 — Skill Engine
 
 - [x] P1-701 Create algorithm skill taxonomy. Published taxonomy `1.0.0`, approved curated skills, Skill Map version display and immutable `skill_graph_memberships` snapshots are implemented. The v1 backfill preserves stable skills in their original snapshot while allowing future versions to include the same skills without losing historical membership; migration, router regression, database verification, visual review and final quality gates pass.
-- [ ] P1-702 Create mathematics skill taxonomy for future expansion.
+- [x] P1-702 Create mathematics skill taxonomy for future expansion. Published taxonomy `1.1.0` retains all 11 algorithm skills and adds nine curated mathematics skills across algebra, number theory, combinatorics, geometry, probability and proof; no source-tag mappings, problem links, mastery calculations or automatic recommendations are enabled. Database verification, grouped Skill Map visual review and quality gates pass.
 - [ ] P1-703 Create skill dependency graph.
 - [ ] P1-704 Implement mastery calculation.
 - [ ] P1-705 Incorporate difficulty, attempts, time, hints, recency and related skills.

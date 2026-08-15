@@ -71,6 +71,13 @@
       "when": 1786786697527,
       "tag": "0009_lumpy_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1786786990293,
+      "tag": "0010_seed_mathematics_skill_taxonomy",
+      "breakpoints": true
     }
   ]
 }
