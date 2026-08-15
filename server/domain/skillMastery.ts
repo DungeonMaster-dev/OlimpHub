@@ -28,6 +28,19 @@ export type SkillMasteryResult = {
   factors: SkillMasteryFactors;
 };
 
+export type SkillMasteryReason = {
+  code:
+    | "insufficient_direct_evidence"
+    | "direct_solved_evidence"
+    | "problem_difficulty"
+    | "deliberate_attempts"
+    | "hint_dependence"
+    | "recent_practice"
+    | "related_skill_context";
+  contribution: number;
+  label: string;
+};
+
 const relevanceWeight = {
   primary: 25,
   supporting: 18,
@@ -154,4 +167,58 @@ export function calculateSkillMastery(
       factors: { ...result.factors, relatedSkillContext },
     };
   });
+}
+
+/** Returns the strongest factual contributors, without exposing private content. */
+export function buildSkillMasteryReasons(
+  mastery: SkillMasteryResult
+): SkillMasteryReason[] {
+  if (mastery.status === "insufficient_evidence") {
+    return [
+      {
+        code: "insufficient_direct_evidence",
+        contribution: 0,
+        label: `${mastery.evidenceCount}/${minimumIndependentSolvedProblems} independent solved problems with this skill`,
+      },
+    ];
+  }
+  const candidates: SkillMasteryReason[] = [
+    {
+      code: "direct_solved_evidence",
+      contribution: mastery.factors.directEvidence,
+      label: `${mastery.evidenceCount} independently solved mapped problems`,
+    },
+    {
+      code: "problem_difficulty",
+      contribution: mastery.factors.difficulty,
+      label: "Problem difficulty contribution",
+    },
+    {
+      code: "deliberate_attempts",
+      contribution: mastery.factors.attempts,
+      label: "Independent attempt contribution",
+    },
+    {
+      code: "hint_dependence",
+      contribution: mastery.factors.hints,
+      label: "Released-hint adjustment",
+    },
+    {
+      code: "recent_practice",
+      contribution: mastery.factors.recency,
+      label: "Recent solved-practice contribution",
+    },
+    {
+      code: "related_skill_context",
+      contribution: mastery.factors.relatedSkillContext,
+      label: "Bounded related-skill context",
+    },
+  ];
+  return candidates
+    .filter(reason => reason.contribution !== 0)
+    .sort(
+      (first, second) =>
+        Math.abs(second.contribution) - Math.abs(first.contribution)
+    )
+    .slice(0, 3);
 }

@@ -11,9 +11,9 @@ export default function Skills() {
   const { graphVersion, nodes, edges, links } = map.data!;
   const nodesById = new Map(nodes.map(node => [node.id, node]));
   const masteryBySkillId = new Map(
-    (mastery.data?.skills ?? []).map(({ skill, mastery: result }) => [
+    (mastery.data?.skills ?? []).map(({ skill, mastery: result, reasons }) => [
       skill.id,
-      result,
+      { result, reasons },
     ])
   );
   const nodesByDomain = {
@@ -62,11 +62,11 @@ export default function Skills() {
                   <div className="skill-map-grid">
                     {nodesByDomain[domain].map(node =>
                       (() => {
-                        const result = masteryBySkillId.get(node.id);
-                        const masteryLabel = result
-                          ? result.status === "estimated"
-                            ? `${result.score}% multi-factor evidence · ${result.evidenceCount} solved`
-                            : `Insufficient evidence · ${result.evidenceCount}/${mastery.data?.minimumIndependentSolvedProblems ?? 2} solved`
+                        const masteryRecord = masteryBySkillId.get(node.id);
+                        const masteryLabel = masteryRecord
+                          ? masteryRecord.result.status === "estimated"
+                            ? `${masteryRecord.result.score}% multi-factor evidence · ${masteryRecord.result.evidenceCount} solved`
+                            : `Insufficient evidence · ${masteryRecord.result.evidenceCount}/${mastery.data?.minimumIndependentSolvedProblems ?? 2} solved`
                           : mastery.isError
                             ? "Mastery unavailable"
                             : "Calculating mastery…";
@@ -95,6 +95,11 @@ export default function Skills() {
                               <p className="mt-1 text-xs text-indigo-100/75">
                                 {masteryLabel}
                               </p>
+                              {masteryRecord?.reasons[0] && (
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {masteryRecord.reasons[0].label}
+                                </p>
+                              )}
                             </div>
                           </div>
                         );

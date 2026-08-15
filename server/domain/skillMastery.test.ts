@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSkillMasteryReasons,
   calculateSkillMastery,
   minimumIndependentSolvedProblems,
   skillMasteryCalculationVersion,
@@ -125,5 +126,33 @@ describe("skill mastery", () => {
       score: null,
       factors: { relatedSkillContext: 0 },
     });
+  });
+
+  it("projects short factual reasons without private problem, note or hint content", () => {
+    const [estimated] = calculateSkillMastery(
+      [1],
+      [
+        { skillId: 1, problemId: 10, relevance: "primary" },
+        { skillId: 1, problemId: 11, relevance: "supporting" },
+      ],
+      new Map(),
+      new Date("2026-08-15T00:00:00.000Z")
+    );
+    const [insufficient] = calculateSkillMastery([2], []);
+
+    expect(buildSkillMasteryReasons(estimated)).toEqual([
+      {
+        code: "direct_solved_evidence",
+        contribution: 43,
+        label: "2 independently solved mapped problems",
+      },
+    ]);
+    expect(buildSkillMasteryReasons(insufficient)).toEqual([
+      {
+        code: "insufficient_direct_evidence",
+        contribution: 0,
+        label: "0/2 independent solved problems with this skill",
+      },
+    ]);
   });
 });

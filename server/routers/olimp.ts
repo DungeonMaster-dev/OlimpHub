@@ -60,6 +60,7 @@ import { classifySourceSyncFailure } from "../domain/syncOutcome";
 import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
 import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
+  buildSkillMasteryReasons,
   calculateSkillMastery,
   minimumIndependentSolvedProblems,
   skillMasteryCalculationVersion,
@@ -1399,6 +1400,7 @@ export const olimpRouter = router({
         skills: nodes.map(skill => ({
           skill,
           mastery: bySkillId.get(skill.id)!,
+          reasons: buildSkillMasteryReasons(bySkillId.get(skill.id)!),
         })),
       };
     }),

@@ -74,3 +74,4 @@
 - [x] Implement P1-703 versioned skill dependency graph membership and prerequisite-cycle validation.
 - [x] Implement P1-704 deterministic evidence-backed skill mastery calculation with insufficient-evidence semantics.
 - [x] Implement P1-705 conservative mastery inputs for difficulty, attempts, hints, recency and bounded related-skill context.
+- [x] Implement P1-706 privacy-safe explainable mastery reason codes derived from deterministic evidence factors.

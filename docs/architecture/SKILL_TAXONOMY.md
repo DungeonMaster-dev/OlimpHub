@@ -132,6 +132,8 @@ erDiagram
 4. Проникновение по `prerequisite_of` ограничено и документировано; оно не копирует оценку дочернего навыка на родителя 1:1.
 5. LLM может объяснить уже рассчитанные причины человеческим языком, но не создаёт числовые evidence без фактов.
 
+P1-706 supplies those reasons directly from the deterministic result. `insufficient_direct_evidence` reports only the count against the two-solved threshold. Estimated results rank up to three non-zero contributors among direct solved evidence, problem difficulty, deliberate attempts, released-hint adjustment, recent practice and bounded `related_to` context. The reason projection contains no problem statement, note, hint content, code or full solution.
+
 ## 9. Управление изменениями и качество графа
 
 Новая версия карты публикуется только после проверки: уникальности stable key, валидных локалей, отсутствия циклов в prerequisite-графе, отсутствия self-edge, понятного определения новых навыков и миграционной заметки. Удаление навыка заменяется `deprecated`-статусом и relation `replaced_by`; старые отчёты остаются читаемыми.
