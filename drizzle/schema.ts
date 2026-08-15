@@ -514,6 +514,57 @@ export const trainingItems = mysqlTable(
   ]
 );
 
+export const contestSessions = mysqlTable(
+  "contest_sessions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 180 }).notNull(),
+    status: mysqlEnum("status", ["draft", "active", "completed", "archived"])
+      .default("draft")
+      .notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    startedAt: timestamp("startedAt"),
+    completedAt: timestamp("completedAt"),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    index("contest_sessions_user_status_idx").on(table.userId, table.status),
+  ]
+);
+
+export const contestItems = mysqlTable(
+  "contest_items",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sessionId: int("sessionId")
+      .notNull()
+      .references(() => contestSessions.id, { onDelete: "cascade" }),
+    problemId: int("problemId")
+      .notNull()
+      .references(() => problems.id, { onDelete: "cascade" }),
+    position: int("position").notNull(),
+    status: mysqlEnum("status", ["queued", "active", "completed", "skipped"])
+      .default("queued")
+      .notNull(),
+    completedAt: timestamp("completedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [
+    uniqueIndex("contest_items_session_position_unique").on(
+      table.sessionId,
+      table.position
+    ),
+    uniqueIndex("contest_items_session_problem_unique").on(
+      table.sessionId,
+      table.problemId
+    ),
+  ]
+);
+
 export const analyticsSnapshots = mysqlTable(
   "analytics_snapshots",
   {

@@ -86,3 +86,4 @@
 - [x] Implement P1-806 Surprise Me training with deterministic owner-scoped eligible-problem selection and an explicit, editable session-creation handoff.
 - [x] Implement P1-807 factual post-training analysis from owner-scoped session item outcomes, without inferring skills or results absent from persisted evidence.
 - [x] Implement P1-808 deterministic recommendation-quality test scenarios for eligibility, priority, evidence insufficiency, progression and Surprise Me guardrails.
+- [ ] Audit and implement P1-901 owner-scoped virtual contest lifecycle with durable session state, ordered problems and no unverified contest tracking facts.
