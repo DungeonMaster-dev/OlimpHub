@@ -4,6 +4,7 @@ import type { TrpcContext } from "./_core/context";
 const mocks = vi.hoisted(() => ({
   getDb: vi.fn(),
   limitedResults: [] as unknown[][],
+  updates: [] as Array<Record<string, unknown>>,
   writes: [] as Array<Record<string, unknown>>,
 }));
 
@@ -22,6 +23,7 @@ function userContext(): TrpcContext {
 describe("workspace page activity tracking", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.updates = [];
     mocks.writes = [];
     const db = {
       select: vi.fn(() => ({
@@ -40,6 +42,12 @@ describe("workspace page activity tracking", () => {
           );
           if (!duplicatePageView) mocks.writes.push(values);
           return { onDuplicateKeyUpdate: vi.fn(async () => undefined) };
+        }),
+      })),
+      update: vi.fn(() => ({
+        set: vi.fn((values: Record<string, unknown>) => {
+          mocks.updates.push(values);
+          return { where: vi.fn(async () => undefined) };
         }),
       })),
     };
@@ -140,5 +148,47 @@ describe("workspace page activity tracking", () => {
         clientEventId: "bb1bafcf-b48a-42b1-b9c6-563337da2b59",
       }),
     ]);
+  });
+
+  it("records only the revealed hint level and never hint content in activity metadata", async () => {
+    mocks.limitedResults = [
+      [
+        {
+          id: 3,
+          userId: 1,
+          problemId: 9,
+          highestHintLevel: -1,
+        },
+      ],
+      [
+        {
+          id: 1,
+          problemId: 9,
+          level: 0,
+          content: "private strategy content must not enter activity metadata",
+        },
+      ],
+    ];
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.workspace.nextHint({
+        attemptId: 3,
+      })
+    ).resolves.toEqual({
+      level: 0,
+      content: "private strategy content must not enter activity metadata",
+    });
+    expect(mocks.writes).toContainEqual(
+      expect.objectContaining({
+        userId: 1,
+        attemptId: 3,
+        problemId: 9,
+        eventType: "hint_revealed",
+        metadata: { level: 0 },
+      })
+    );
+    expect(JSON.stringify(mocks.writes)).not.toContain(
+      "private strategy content"
+    );
   });
 });

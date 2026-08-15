@@ -60,3 +60,4 @@
 - [x] Re-run final P1-601 quality gates after client lifecycle coverage.
 - [x] Implement P1-602 privacy-safe note-editor focus/blur activity tracking without persisting note text in activity metadata.
 - [x] Implement P1-603 privacy-safe submission/verdict summary activity during Codeforces synchronization.
+- [x] Complete P1-604 privacy-safe progressive hint interaction tracking without storing hint content in activity facts.
