@@ -37,6 +37,7 @@ import { getDb } from "../db";
 import { generateStructured } from "../ai/modelProvider";
 import { buildStructuredUserContext } from "../ai/userContext";
 import { buildFactualProgressAnalysis } from "../domain/progressAnalysis";
+import { buildRecurringPatternAnalysis } from "../domain/recurringPatterns";
 import { createHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
@@ -573,6 +574,18 @@ export const olimpRouter = router({
         await buildOwnerStructuredUserContext(ctx.user.id)
       )
     ),
+    recurringPatterns: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      const attempts = await db
+        .select({
+          state: solvingAttempts.state,
+          outcome: solvingAttempts.outcome,
+          highestHintLevel: solvingAttempts.highestHintLevel,
+        })
+        .from(solvingAttempts)
+        .where(eq(solvingAttempts.userId, ctx.user.id));
+      return buildRecurringPatternAnalysis(attempts);
+    }),
   }),
   sourceHealth: router({
     list: adminProcedure.query(async () => {

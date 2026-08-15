@@ -181,3 +181,7 @@ The P1-1003 deterministic evidence projection is specified in
 [AI_PROGRESS_ANALYSIS.md](./AI_PROGRESS_ANALYSIS.md). It provides factual
 counts and explicit insufficiency states, not ability, trajectory or outcome
 predictions.
+
+The P1-1004 repeated attempt-evidence contract is specified in
+[AI_RECURRING_PATTERNS.md](./AI_RECURRING_PATTERNS.md). It reports only
+thresholded stored patterns and explicitly excludes causal diagnosis.

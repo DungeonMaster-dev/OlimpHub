@@ -41,6 +41,20 @@ vi.mock("@/lib/trpc", () => ({
             error: null,
           }),
         },
+        recurringPatterns: {
+          useQuery: () => ({
+            data: {
+              calculationVersion: "recurring-patterns-v1",
+              minimumEvidence: 2,
+              status: "insufficient_evidence",
+              analyzedAttemptCount: 0,
+              recurringPatterns: [],
+              limitations: [],
+            },
+            isLoading: false,
+            error: null,
+          }),
+        },
       },
       analytics: {
         summary: {

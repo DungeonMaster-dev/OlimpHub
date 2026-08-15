@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   CirclePlay,
   Info,
+  Repeat2,
   TrendingUp,
 } from "lucide-react";
 import React, { useState } from "react";
@@ -17,6 +18,7 @@ export default function Progress() {
   const activityStatistics = trpc.olimp.analytics.activityStatistics.useQuery();
   const activityStreak = trpc.olimp.analytics.activityStreak.useQuery();
   const factualAnalysis = trpc.olimp.ai.progressAnalysis.useQuery();
+  const recurringPatterns = trpc.olimp.ai.recurringPatterns.useQuery();
   if (summary.error) return <ErrorState message={summary.error.message} />;
   if (summary.isLoading || !summary.data)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
@@ -72,6 +74,11 @@ export default function Progress() {
         analysis={factualAnalysis.data}
         loading={factualAnalysis.isLoading}
         error={factualAnalysis.error?.message}
+      />
+      <RecurringEvidencePatterns
+        analysis={recurringPatterns.data}
+        loading={recurringPatterns.isLoading}
+        error={recurringPatterns.error?.message}
       />
       {activityStatistics.error ? (
         <ErrorState message={activityStatistics.error.message} />
@@ -233,6 +240,120 @@ export function FactualProgressAnalysis({
         {analysis.evidence.trainingSessions} training sessions ·{" "}
         {analysis.evidence.contestSessions} contest sessions. Context:{" "}
         {analysis.contextVersion}.
+      </p>
+    </section>
+  );
+}
+
+export function RecurringEvidencePatterns({
+  analysis,
+  loading,
+  error,
+}: {
+  analysis:
+    | {
+        calculationVersion: string;
+        minimumEvidence: number;
+        status:
+          | "patterns_detected"
+          | "no_recurring_patterns"
+          | "insufficient_evidence";
+        analyzedAttemptCount: number;
+        recurringPatterns: Array<{
+          code: string;
+          count: number;
+          label: string;
+          detail: string;
+        }>;
+        limitations: string[];
+      }
+    | undefined;
+  loading: boolean;
+  error?: string;
+}) {
+  if (loading)
+    return (
+      <section className="h-44 animate-pulse rounded-3xl bg-white/[.04]" />
+    );
+  if (error)
+    return (
+      <section className="panel" role="alert">
+        <p className="eyebrow">RECURRING EVIDENCE</p>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          Repeated-attempt evidence is unavailable right now. No interpretation
+          was generated.
+        </p>
+      </section>
+    );
+  if (!analysis) return null;
+  if (analysis.status === "insufficient_evidence")
+    return (
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">RECURRING EVIDENCE</p>
+            <h3>More recorded attempts needed</h3>
+          </div>
+          <Repeat2 className="h-5 w-5 text-indigo-200" />
+        </div>
+        <p className="mt-4 text-sm leading-6 text-slate-400">
+          {analysis.minimumEvidence} persisted attempts are required before
+          checking for repeated patterns. This is an evidence threshold, not a
+          judgment about your learning.
+        </p>
+      </section>
+    );
+  if (analysis.status === "no_recurring_patterns")
+    return (
+      <section className="panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">RECURRING EVIDENCE</p>
+            <h3>No repeated attempt patterns recorded</h3>
+          </div>
+          <span className="tag">{analysis.calculationVersion}</span>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-slate-400">
+          {analysis.analyzedAttemptCount} persisted attempts were checked. This
+          view reports repeated stored facts only; it does not diagnose causes
+          or label a learner.
+        </p>
+      </section>
+    );
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">RECURRING EVIDENCE</p>
+          <h3>Repeated attempt facts</h3>
+        </div>
+        <span className="tag">{analysis.calculationVersion}</span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        These are repeated stored attempt facts, not diagnoses of why they
+        happened or predictions of future results.
+      </p>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {analysis.recurringPatterns.map(pattern => (
+          <div
+            key={pattern.code}
+            className="rounded-xl border border-white/[.06] bg-white/[.02] p-4"
+          >
+            <p className="text-xs uppercase tracking-[.16em] text-slate-500">
+              {pattern.label}
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-slate-100">
+              {pattern.count}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              {pattern.detail}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-5 text-xs leading-5 text-slate-600">
+        Based on {analysis.analyzedAttemptCount} persisted attempts; a pattern
+        requires at least {analysis.minimumEvidence} matching records.
       </p>
     </section>
   );
