@@ -140,7 +140,7 @@
 - [x] P1-805 Implement training session lifecycle. Owner-scoped creation persists one active item followed by queued items; protected detail reads, terminal completion, non-active resolution rejection and server-side next-item promotion are implemented. Only the protected terminal-advance path can activate queued work, preventing out-of-order promotion or multiple active items. Router/domain/UI regressions verify the lifecycle; the full quality suite has 116 tests.
 - [x] P1-806 Implement Surprise Me training. A deterministic UTC-day rotation selects up to four unique problems only from the already protected owner-scoped adaptive-eligible set. Surprise Me fills the ordinary editable session form and never writes a session automatically. Selector and Training UI regressions pass; the full quality suite has 119 tests.
 - [x] P1-807 Implement post-training analysis. Completed TrainingSession views now show only factual persisted item outcomes: completed, skipped and completion percentage. No skill, rating, quality or unrecorded result is inferred. Shared analysis and completed-session UI regressions pass; the full quality suite has 122 tests.
-- [ ] P1-808 Evaluate recommendation quality with test scenarios.
+- [x] P1-808 Evaluate recommendation quality with test scenarios. Deterministic scenarios now verify terminal/active-session exclusion, unfinished-work priority, stable tie-breaking, difficulty targeting as a tie-breaker only, insufficient-evidence behavior, elapsed-time bounds and bounded daily Surprise Me selection. The full quality suite has 123 tests.
 
 # Phase 9 — Contest Engine
 

@@ -107,6 +107,35 @@ describe("adaptive training selection", () => {
     ).toEqual([11, 10]);
   });
 
+  it("keeps unfinished owner work ahead of a closer difficulty match and uses a stable identifier tie-breaker", () => {
+    expect(
+      selectAdaptiveTrainingProblems(
+        [
+          {
+            problemId: 20,
+            difficulty: 1300,
+            progressStatus: null,
+            isInActiveTraining: false,
+          },
+          {
+            problemId: 7,
+            difficulty: 1300,
+            progressStatus: "in_progress",
+            isInActiveTraining: false,
+          },
+          {
+            problemId: 10,
+            difficulty: 1300,
+            progressStatus: null,
+            isInActiveTraining: false,
+          },
+        ],
+        3,
+        1300
+      ).map(item => item.problemId)
+    ).toEqual([7, 10, 20]);
+  });
+
   it("returns insufficient evidence instead of inferring a target from too little solved history", () => {
     expect(calculateDifficultyProgression([1200, null, 1400])).toEqual({
       status: "insufficient_evidence",
