@@ -198,3 +198,8 @@ only eligible-problem and bounded completed-attempt timing evidence.
 The P1-1008 server-bounded progressive guidance contract is specified in
 [AI_PROGRESSIVE_GUIDANCE.md](./AI_PROGRESSIVE_GUIDANCE.md). It can never add
 unrevealed hint content or a solution to a learning-mode response.
+
+The P1-1009 conservative learning-mode leakage guard is specified in
+[AI_LEAKAGE_GUARD.md](./AI_LEAKAGE_GUARD.md). It withholds solution-like
+revealed content from the guidance recap without altering the approved reveal
+record.

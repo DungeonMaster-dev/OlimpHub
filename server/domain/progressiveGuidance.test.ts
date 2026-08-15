@@ -30,4 +30,34 @@ describe("progressive guidance", () => {
       })
     ).toMatchObject({ status: "request_first_hint", guidance: [] });
   });
+
+  it("withholds revealed solution-like or code-like content in learning mode", () => {
+    expect(
+      buildProgressiveGuidance({
+        highestRevealedLevel: 2,
+        hints: [
+          { level: 0, content: "Inspect the invariant." },
+          { level: 1, content: "Full solution: use this recurrence." },
+          { level: 2, content: "```ts\nconst answer = solve();\n```" },
+        ],
+      })
+    ).toMatchObject({
+      status: "available",
+      guidance: [{ level: 0, content: "Inspect the invariant." }],
+      withheldLevels: [1, 2],
+    });
+  });
+
+  it("returns an explicit blocked state when every revealed hint is solution-like", () => {
+    expect(
+      buildProgressiveGuidance({
+        highestRevealedLevel: 0,
+        hints: [{ level: 0, content: "Answer is 42." }],
+      })
+    ).toMatchObject({
+      status: "blocked_for_learning_mode",
+      guidance: [],
+      withheldLevels: [0],
+    });
+  });
 });

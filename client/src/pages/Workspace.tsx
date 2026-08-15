@@ -275,6 +275,13 @@ export default function Workspace() {
                 Reveal the first approved hint to begin a level-bounded guidance
                 recap.
               </p>
+            ) : attemptId &&
+              guidance.data?.status === "blocked_for_learning_mode" ? (
+              <p className="mt-4 text-xs leading-5 text-amber-100/70">
+                Guidance recap is withheld in learning mode because the revealed
+                material may be too solution-like. The original approved hint
+                remains governed by the normal disclosure flow.
+              </p>
             ) : null}
             <button
               onClick={() =>
