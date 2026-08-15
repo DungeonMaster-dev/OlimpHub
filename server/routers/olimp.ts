@@ -1287,7 +1287,7 @@ export const olimpRouter = router({
           skills: [],
         };
       }
-      const [nodeRows, evidence] = await Promise.all([
+      const [nodeRows, evidence, attempts, edgeRows] = await Promise.all([
         db
           .select({ node: skills })
           .from(skillGraphMemberships)
@@ -1303,12 +1303,15 @@ export const olimpRouter = router({
             skillId: problemSkills.skillId,
             problemId: userProblemProgress.problemId,
             relevance: problemSkills.relevance,
+            difficulty: problems.difficulty,
+            solvedAt: userProblemProgress.solvedAt,
           })
           .from(userProblemProgress)
           .innerJoin(
             problemSkills,
             eq(userProblemProgress.problemId, problemSkills.problemId)
           )
+          .innerJoin(problems, eq(userProblemProgress.problemId, problems.id))
           .innerJoin(
             skillGraphMemberships,
             and(
@@ -1322,11 +1325,69 @@ export const olimpRouter = router({
               eq(userProblemProgress.status, "solved")
             )
           ),
+        db
+          .select({
+            problemId: solvingAttempts.problemId,
+            highestHintLevel: solvingAttempts.highestHintLevel,
+          })
+          .from(solvingAttempts)
+          .where(eq(solvingAttempts.userId, ctx.user.id)),
+        db
+          .select({ edge: skillEdges })
+          .from(skillEdgeGraphMemberships)
+          .innerJoin(
+            skillEdges,
+            eq(skillEdgeGraphMemberships.skillEdgeId, skillEdges.id)
+          )
+          .where(
+            and(
+              eq(skillEdgeGraphMemberships.graphVersionId, graphVersion.id),
+              eq(skillEdges.relationType, "related_to")
+            )
+          ),
       ]);
       const nodes = nodeRows.map(({ node }) => node);
+      const attemptSummaryByProblem = new Map<
+        number,
+        { count: number; highestHintLevel: number }
+      >();
+      for (const attempt of attempts) {
+        const previous = attemptSummaryByProblem.get(attempt.problemId) ?? {
+          count: 0,
+          highestHintLevel: -1,
+        };
+        attemptSummaryByProblem.set(attempt.problemId, {
+          count: previous.count + 1,
+          highestHintLevel: Math.max(
+            previous.highestHintLevel,
+            attempt.highestHintLevel
+          ),
+        });
+      }
+      const relatedSkillIds = new Map<number, number[]>();
+      for (const { edge } of edgeRows) {
+        relatedSkillIds.set(edge.fromSkillId, [
+          ...(relatedSkillIds.get(edge.fromSkillId) ?? []),
+          edge.toSkillId,
+        ]);
+        relatedSkillIds.set(edge.toSkillId, [
+          ...(relatedSkillIds.get(edge.toSkillId) ?? []),
+          edge.fromSkillId,
+        ]);
+      }
       const results = calculateSkillMastery(
         nodes.map(node => node.id),
-        evidence
+        evidence.map(item => {
+          const attemptsForProblem = attemptSummaryByProblem.get(
+            item.problemId
+          );
+          return {
+            ...item,
+            attemptCount: attemptsForProblem?.count ?? 0,
+            highestHintLevel: attemptsForProblem?.highestHintLevel ?? -1,
+          };
+        }),
+        relatedSkillIds
       );
       const bySkillId = new Map(
         results.map(result => [result.skillId, result])

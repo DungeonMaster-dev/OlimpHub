@@ -122,7 +122,7 @@ erDiagram
 
 ## 8. Измерение mastery: интерфейс с будущим движком
 
-Карта навыков не хранит одно итоговое число как первичный факт. `SkillEvidence` выражает вклад конкретного события: решение задачи, попытка, использование подсказки, внешняя Accepted-отправка, время с последней практики. P1-704 реализует начальную детерминированную функцию `skill-mastery-v1`: она использует только owner-scoped solved progress, связанный с approved `ProblemSkillLink` в опубликованной версии графа. Два независимых solved problem требуются до первого estimate; при меньшем количестве результатом остаётся `insufficient_evidence`. Сложность, попытки, подсказки, недавность и graph propagation намеренно остаются входами P1-705.
+Карта навыков не хранит одно итоговое число как первичный факт. `SkillEvidence` выражает вклад конкретного события: решение задачи, попытка, использование подсказки, внешняя Accepted-отправка, время с последней практики. P1-704 реализует начальную детерминированную функцию `skill-mastery-v1`: она использует только owner-scoped solved progress, связанный с approved `ProblemSkillLink` в опубликованной версии графа. Два независимых solved problem требуются до первого estimate; при меньшем количестве результатом остаётся `insufficient_evidence`. P1-705 заменяет её на `skill-mastery-v2`: verified difficulty, количество owner attempts, highest released hint level и solved recency влияют только после выполнения direct-evidence threshold. `related_to` в текущей published версии добавляет не более пяти points и не может преобразовать `insufficient_evidence` в estimate; prerequisite propagation намеренно не включена.
 
 Минимальные требования объяснимости:
 

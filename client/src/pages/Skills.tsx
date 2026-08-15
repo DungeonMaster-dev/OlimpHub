@@ -65,7 +65,7 @@ export default function Skills() {
                         const result = masteryBySkillId.get(node.id);
                         const masteryLabel = result
                           ? result.status === "estimated"
-                            ? `${result.score}% direct evidence · ${result.evidenceCount} solved`
+                            ? `${result.score}% multi-factor evidence · ${result.evidenceCount} solved`
                             : `Insufficient evidence · ${result.evidenceCount}/${mastery.data?.minimumIndependentSolvedProblems ?? 2} solved`
                           : mastery.isError
                             ? "Mastery unavailable"
