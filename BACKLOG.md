@@ -146,7 +146,7 @@
 
 - [x] P1-901 Implement virtual contest lifecycle.
 - [x] P1-902 Implement contest timer. A draft persists a server-validated 15–480 minute duration; start writes an immutable server-derived deadline; protected reads and item mutations materialize expired sessions and block further advancement. Contest UI renders a local countdown from that server deadline and does not claim score, penalty, rank or performance. Migration, timer domain/router/UI regressions and final quality gates pass.
-- [ ] P1-903 Implement scoring and penalty systems.
+- [x] P1-903 Implement scoring and penalty systems. Protected contest detail now projects `completion-time-v1` from persisted `startedAt`, completed-item timestamps and explicit 100-point base values: score is completed items × 100, while penalty is rounded-up elapsed completion minutes. Missing/invalid completion evidence earns no score or penalty; no wrong-attempt factor, rank or performance inference is fabricated. Domain, protected-router and UI regressions plus final quality gates pass.
 - [ ] P1-904 Implement contest problem selection.
 - [ ] P1-905 Implement AI-generated personalized contests.
 - [ ] P1-906 Implement contest performance analysis.

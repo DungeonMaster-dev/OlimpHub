@@ -45,6 +45,15 @@ vi.mock("@/lib/trpc", () => ({
                 remainingSeconds: 7_200,
                 isExpired: mocks.expiredSession,
               },
+              scoring: {
+                calculationVersion: "completion-time-v1",
+                available: true,
+                reason: null,
+                completedItems: mocks.completedSession ? 1 : 0,
+                unscoredCompletedItems: 0,
+                totalScore: mocks.completedSession ? 100 : 0,
+                totalPenaltyMinutes: mocks.completedSession ? 12 : 0,
+              },
               items: [
                 {
                   item: {
@@ -120,6 +129,8 @@ describe("contest session lifecycle UI", () => {
     expect(mocks.invalidate).toHaveBeenCalledWith({ sessionId: 701 });
     expect(screen.getByText("TIME REMAINING")).toBeTruthy();
     expect(screen.getByText("02:00:00")).toBeTruthy();
+    expect(screen.getByText("FACTUAL SCORE")).toBeTruthy();
+    expect(screen.getByText("completion-time-v1")).toBeTruthy();
   });
 
   it("renders only a factual completed-session sequence summary", () => {
@@ -130,7 +141,10 @@ describe("contest session lifecycle UI", () => {
     expect(screen.getByText("COMPLETED")).toBeTruthy();
     expect(screen.getByText("SKIPPED")).toBeTruthy();
     expect(screen.getByText("100%")).toBeTruthy();
-    expect(screen.queryByText(/score/i)).toBeNull();
+    expect(screen.getByText("100")).toBeTruthy();
+    expect(screen.getByText("12 min")).toBeTruthy();
+    expect(screen.queryByText(/rank/i)).toBeNull();
+    expect(screen.getByText(/does not infer performance/i)).toBeTruthy();
   });
 
   it("renders the server-materialized expiration state instead of allowing another advance", () => {

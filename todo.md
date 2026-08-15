@@ -88,3 +88,4 @@
 - [x] Implement P1-808 deterministic recommendation-quality test scenarios for eligibility, priority, evidence insufficiency, progression and Surprise Me guardrails.
 - [x] Audit and implement P1-901 owner-scoped virtual contest lifecycle with durable session state, ordered problems and no unverified contest tracking facts.
 - [x] Implement P1-902 durable owner-scoped contest timer with server-derived remaining time, immutable start boundary, explicit expiration state and no scoring inference.
+- [x] Implement P1-903 factual contest score and elapsed-time penalty projection using only persisted completion timestamps and explicit policy constants.

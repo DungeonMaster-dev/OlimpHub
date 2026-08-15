@@ -314,4 +314,48 @@ describe("virtual contest lifecycle", () => {
       },
     });
   });
+
+  it("projects factual score and elapsed-time penalty through the protected contest detail contract", async () => {
+    mocks.selectResults = [
+      [
+        {
+          id: 7,
+          userId: 1,
+          status: "completed",
+          durationMinutes: 120,
+          startedAt: new Date("2026-08-15T09:00:00.000Z"),
+          expiresAt: new Date("2026-08-15T11:00:00.000Z"),
+        },
+      ],
+      [
+        {
+          item: {
+            id: 12,
+            status: "completed",
+            completedAt: new Date("2026-08-15T09:07:01.000Z"),
+          },
+          problem: { id: 9, title: "Private title" },
+        },
+        {
+          item: { id: 13, status: "skipped", completedAt: null },
+          problem: { id: 10, title: "Another private title" },
+        },
+      ],
+    ];
+
+    await expect(
+      appRouter
+        .createCaller(userContext())
+        .olimp.contests.detail({ sessionId: 7 })
+    ).resolves.toMatchObject({
+      scoring: {
+        calculationVersion: "completion-time-v1",
+        available: true,
+        completedItems: 1,
+        unscoredCompletedItems: 0,
+        totalScore: 100,
+        totalPenaltyMinutes: 8,
+      },
+    });
+  });
 });

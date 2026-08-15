@@ -113,6 +113,38 @@ export default function ContestSession() {
         </div>
       </section>
 
+      {detail.data.scoring.available ? (
+        <section className="grid gap-3 sm:grid-cols-3">
+          <div className="panel">
+            <p className="eyebrow">FACTUAL SCORE</p>
+            <p className="mt-2 text-2xl font-medium text-slate-100">
+              {detail.data.scoring.totalScore}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {detail.data.scoring.completedItems} completed items × 100 points
+            </p>
+          </div>
+          <div className="panel">
+            <p className="eyebrow">TIME PENALTY</p>
+            <p className="mt-2 text-2xl font-medium text-slate-100">
+              {detail.data.scoring.totalPenaltyMinutes} min
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Elapsed minutes for completed items
+            </p>
+          </div>
+          <div className="panel">
+            <p className="eyebrow">POLICY</p>
+            <p className="mt-2 font-mono text-sm text-slate-200">
+              {detail.data.scoring.calculationVersion}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              No wrong-attempt factor is recorded yet.
+            </p>
+          </div>
+        </section>
+      ) : null}
+
       {isExpired ? (
         <section className="panel text-center">
           <p className="eyebrow">TIME EXPIRED</p>

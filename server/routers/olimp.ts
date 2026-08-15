@@ -69,6 +69,7 @@ import {
   minimumContestDurationMinutes,
   remainingContestSeconds,
 } from "../domain/contestTimer";
+import { summarizeContestScore } from "../domain/contestScoring";
 import {
   adaptiveTrainingCalculationVersion,
   calculateDifficultyProgression,
@@ -1712,6 +1713,13 @@ export const olimpRouter = router({
             ),
             isExpired: timedSession.status === "expired",
           },
+          scoring: summarizeContestScore({
+            startedAt: timedSession.startedAt,
+            items: items.map(({ item }) => ({
+              status: item.status,
+              completedAt: item.completedAt,
+            })),
+          }),
         };
       }),
   }),

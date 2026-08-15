@@ -8,6 +8,10 @@ The explicit duration, server-derived deadline and durable `expired` state added
 P1-902 are specified in [CONTEST_TIMER.md](./CONTEST_TIMER.md). Timer facts
 remain distinct from the later scoring and penalty policy.
 
+The persisted-evidence-only `completion-time-v1` scoring projection added in
+P1-903 is specified in [CONTEST_SCORING.md](./CONTEST_SCORING.md). It remains
+separate from later contest analysis and never implies a rank or rating outcome.
+
 ## Implemented state contract
 
 A contest session begins as `draft`, may become `active`, and finishes as `completed` or `archived`. Its ordered items are `queued`, `active`, `completed` or `skipped`. Starting an owned draft activates exactly the first queued item. Only one item may be active; clients can submit only terminal resolution states for that item. A terminal current-item transition promotes the next queued item server-side, while completion requires every item to be terminal.
