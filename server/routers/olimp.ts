@@ -62,6 +62,11 @@ import {
 } from "../domain/activityStatistics";
 import { buildActivityStreak } from "../domain/activityStreak";
 import {
+  activityRetentionCutoff,
+  analyticsRetentionDayOptions,
+  laterDate,
+} from "../domain/activityRetention";
+import {
   codeforcesProfileSyncJobName,
   dailyCodeforcesProfileSyncCron,
 } from "../domain/scheduling";
@@ -259,6 +264,19 @@ async function ensureSettings(userId: number) {
   )[0]!;
 }
 
+async function purgeExpiredActivity(userId: number, retentionDays: number) {
+  const db = await requireDb();
+  const cutoff = activityRetentionCutoff(retentionDays, new Date());
+  await db
+    .delete(activityEvents)
+    .where(
+      and(
+        eq(activityEvents.userId, userId),
+        sql`${activityEvents.occurredAt} < ${cutoff}`
+      )
+    );
+}
+
 async function beginCodeforcesSync(scopeKey: string) {
   const db = await requireDb();
   const existing = (
@@ -423,6 +441,10 @@ export const olimpRouter = router({
   dashboard: protectedProcedure.query(async ({ ctx }) => {
     const db = await requireDb();
     const settings = await ensureSettings(ctx.user.id);
+    const retentionCutoff = activityRetentionCutoff(
+      settings.analyticsRetentionDays,
+      new Date()
+    );
     const activeAttempts = await db
       .select({ attempt: solvingAttempts, problem: problems })
       .from(solvingAttempts)
@@ -438,7 +460,12 @@ export const olimpRouter = router({
     const recentActivity = await db
       .select()
       .from(activityEvents)
-      .where(eq(activityEvents.userId, ctx.user.id))
+      .where(
+        and(
+          eq(activityEvents.userId, ctx.user.id),
+          gte(activityEvents.occurredAt, retentionCutoff)
+        )
+      )
       .orderBy(desc(activityEvents.occurredAt))
       .limit(6);
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -1199,8 +1226,13 @@ export const olimpRouter = router({
       .input(z.object({ periodDays: periodSchema.default(30) }))
       .query(async ({ ctx, input }) => {
         const db = await requireDb();
+        const settings = await ensureSettings(ctx.user.id);
         const start = new Date(
           Date.now() - input.periodDays * 24 * 60 * 60 * 1000
+        );
+        const activityStart = laterDate(
+          start,
+          activityRetentionCutoff(settings.analyticsRetentionDays, new Date())
         );
         const [solved, attempts, active, activity] = await Promise.all([
           db
@@ -1237,7 +1269,7 @@ export const olimpRouter = router({
             .where(
               and(
                 eq(activityEvents.userId, ctx.user.id),
-                gte(activityEvents.occurredAt, start)
+                gte(activityEvents.occurredAt, activityStart)
               )
             )
             .orderBy(desc(activityEvents.occurredAt))
@@ -1266,9 +1298,14 @@ export const olimpRouter = router({
       .input(z.object({ periodDays: periodSchema }))
       .query(async ({ ctx, input }) => {
         const db = await requireDb();
+        const settings = await ensureSettings(ctx.user.id);
         const endsAt = new Date();
         const startsAt = new Date(
           endsAt.getTime() - input.periodDays * 24 * 60 * 60 * 1000
+        );
+        const activityStart = laterDate(
+          startsAt,
+          activityRetentionCutoff(settings.analyticsRetentionDays, endsAt)
         );
         const [ratingChanges, events] = await Promise.all([
           db
@@ -1287,7 +1324,7 @@ export const olimpRouter = router({
             .where(
               and(
                 eq(activityEvents.userId, ctx.user.id),
-                gte(activityEvents.occurredAt, startsAt)
+                gte(activityEvents.occurredAt, activityStart)
               )
             )
             .orderBy(asc(activityEvents.occurredAt)),
@@ -1305,6 +1342,7 @@ export const olimpRouter = router({
     activityStatistics: protectedProcedure.query(async ({ ctx }) => {
       const db = await requireDb();
       const endsAt = new Date();
+      const settings = await ensureSettings(ctx.user.id);
       const events = await db
         .select()
         .from(activityEvents)
@@ -1313,7 +1351,10 @@ export const olimpRouter = router({
             eq(activityEvents.userId, ctx.user.id),
             gte(
               activityEvents.occurredAt,
-              earliestActivityStatisticsStart(endsAt)
+              laterDate(
+                earliestActivityStatisticsStart(endsAt),
+                activityRetentionCutoff(settings.analyticsRetentionDays, endsAt)
+              )
             )
           )
         )
@@ -1325,20 +1366,30 @@ export const olimpRouter = router({
     }),
     activityStreak: protectedProcedure.query(async ({ ctx }) => {
       const db = await requireDb();
+      const settings = await ensureSettings(ctx.user.id);
+      const now = new Date();
       const activityDay = sql<string>`DATE(${activityEvents.occurredAt})`.as(
         "activityDay"
       );
       const activeDates = await db
         .select({ date: activityDay })
         .from(activityEvents)
-        .where(eq(activityEvents.userId, ctx.user.id))
+        .where(
+          and(
+            eq(activityEvents.userId, ctx.user.id),
+            gte(
+              activityEvents.occurredAt,
+              activityRetentionCutoff(settings.analyticsRetentionDays, now)
+            )
+          )
+        )
         .groupBy(activityDay)
         .orderBy(asc(activityDay));
       return {
         periodBasis: "utc_calendar" as const,
         streak: buildActivityStreak(
           activeDates.map(entry => entry.date),
-          new Date()
+          now
         ),
       };
     }),
@@ -1366,6 +1417,13 @@ export const olimpRouter = router({
           activityTracking: z.enum(["enabled", "minimal"]),
           notificationOptIn: z.enum(["enabled", "disabled"]),
           analyticsPeriodDays: periodSchema,
+          analyticsRetentionDays: z.union(
+            analyticsRetentionDayOptions.map(days => z.literal(days)) as [
+              z.ZodLiteral<30>,
+              z.ZodLiteral<90>,
+              z.ZodLiteral<365>,
+            ]
+          ),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -1375,6 +1433,16 @@ export const olimpRouter = router({
           .update(userSettings)
           .set(input)
           .where(eq(userSettings.userId, ctx.user.id));
+        await purgeExpiredActivity(ctx.user.id, input.analyticsRetentionDays);
+        return { success: true };
+      }),
+    purgeActivityHistory: protectedProcedure
+      .input(z.object({ confirmation: z.literal("DELETE_ACTIVITY_HISTORY") }))
+      .mutation(async ({ ctx }) => {
+        const db = await requireDb();
+        await db
+          .delete(activityEvents)
+          .where(eq(activityEvents.userId, ctx.user.id));
         return { success: true };
       }),
     setCodeforcesHandle: protectedProcedure

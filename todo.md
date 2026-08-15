@@ -67,3 +67,4 @@
 - [x] Audit and complete P1-607 real persisted owner-scoped activity timeline API and Progress UI journey.
 - [x] Implement P1-608 factual daily/weekly/monthly owner-scoped activity statistics and Progress display.
 - [x] Implement P1-609 owner-scoped solved-activity streak calculation and Progress display.
+- [x] Implement P1-610 owner-controlled privacy controls and activity retention policy with server-enforced deletion.

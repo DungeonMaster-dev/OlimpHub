@@ -16,6 +16,7 @@ This directory contains the product and engineering documentation that should st
 - [architecture/SECURITY.md](architecture/SECURITY.md) — threat model, security controls and release gates.
 - [architecture/DATABASE.md](architecture/DATABASE.md) — source-independent canonical problem model, provenance and catalogue invariants.
 - [architecture/LEARNING_DATA.md](architecture/LEARNING_DATA.md) — user, activity, attempt, submission and privacy data model.
+- [architecture/PRIVACY_RETENTION.md](architecture/PRIVACY_RETENTION.md) — owner controls, retention windows, activity-history deletion scope and server enforcement.
 - [architecture/SKILL_TAXONOMY.md](architecture/SKILL_TAXONOMY.md) — versioned algorithm and mathematics skills DAG with explainable mappings.
 - [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md) — provider abstraction, safe context, progressive hints and AI Coach controls.
 - [architecture/EXECUTION_SECURITY.md](architecture/EXECUTION_SECURITY.md) — isolated code execution boundary, resource limits and security controls.

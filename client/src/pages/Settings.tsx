@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Database, Eye, Link2, Save } from "lucide-react";
+import { Bell, Database, Eye, Link2, Save, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { ErrorState } from "./Home";
 
@@ -10,6 +10,7 @@ type InitialSettings = {
     activityTracking: "enabled" | "minimal";
     notificationOptIn: "enabled" | "disabled";
     analyticsPeriodDays: number;
+    analyticsRetentionDays: number;
     updatedAt: Date;
   };
   codeforces: {
@@ -19,6 +20,10 @@ type InitialSettings = {
     dailySyncLastRunAt: Date | null;
   } | null;
 };
+
+function normalizeRetentionDays(value: number): 30 | 90 | 365 {
+  return value === 30 || value === 365 ? value : 90;
+}
 
 export default function Settings() {
   const settings = trpc.olimp.settings.get.useQuery();
@@ -45,9 +50,25 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
   const [period, setPeriod] = useState<7 | 30 | 90>(
     initial.settings.analyticsPeriodDays as 7 | 30 | 90
   );
+  const [retentionDays, setRetentionDays] = useState<30 | 90 | 365>(
+    normalizeRetentionDays(initial.settings.analyticsRetentionDays)
+  );
+  const [purgeConfirmation, setPurgeConfirmation] = useState("");
   const save = trpc.olimp.settings.update.useMutation({
-    onSuccess: () => utils.olimp.settings.get.invalidate(),
+    onSuccess: () => {
+      utils.olimp.settings.get.invalidate();
+      utils.olimp.analytics.invalidate();
+      utils.olimp.dashboard.invalidate();
+    },
   });
+  const purgeActivityHistory =
+    trpc.olimp.settings.purgeActivityHistory.useMutation({
+      onSuccess: () => {
+        setPurgeConfirmation("");
+        utils.olimp.analytics.invalidate();
+        utils.olimp.dashboard.invalidate();
+      },
+    });
   const setCf = trpc.olimp.settings.setCodeforcesHandle.useMutation({
     onSuccess: () => utils.olimp.settings.get.invalidate(),
   });
@@ -204,6 +225,65 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
               <option value={90}>90 days</option>
             </select>
           </label>
+          <label className="label mt-4">
+            Activity retention
+            <select
+              className="input-dark mt-2"
+              value={retentionDays}
+              onChange={event =>
+                setRetentionDays(Number(event.target.value) as 30 | 90 | 365)
+              }
+            >
+              <option value={30}>30 days</option>
+              <option value={90}>90 days</option>
+              <option value={365}>365 days</option>
+            </select>
+          </label>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            The selected window limits private activity shown in analytics.
+            Saving a shorter window permanently removes older activity facts.
+          </p>
+          <div className="mt-5 rounded-xl border border-rose-200/15 bg-rose-400/[.04] p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-rose-100">
+              <Trash2 className="h-4 w-4" />
+              Delete activity history
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-400">
+              This permanently removes your private activity-event history. It
+              does not delete notes, attempts, problem progress, or imported
+              public submissions.
+            </p>
+            <label className="label mt-3 text-xs">
+              Type DELETE_ACTIVITY_HISTORY to confirm
+              <input
+                className="input-dark mt-2"
+                value={purgeConfirmation}
+                onChange={event => setPurgeConfirmation(event.target.value)}
+                placeholder="DELETE_ACTIVITY_HISTORY"
+              />
+            </label>
+            <button
+              onClick={() =>
+                purgeActivityHistory.mutate({
+                  confirmation: "DELETE_ACTIVITY_HISTORY",
+                })
+              }
+              disabled={
+                purgeConfirmation !== "DELETE_ACTIVITY_HISTORY" ||
+                purgeActivityHistory.isPending
+              }
+              className="mt-3 text-sm text-rose-200 transition hover:text-rose-100 disabled:opacity-40"
+            >
+              {purgeActivityHistory.isPending
+                ? "Deleting activity history…"
+                : "Permanently delete activity history"}
+            </button>
+            {purgeActivityHistory.error && (
+              <p className="mt-2 text-xs text-rose-200">
+                {purgeActivityHistory.error.message}
+              </p>
+            )}
+          </div>
         </section>
         <section className="panel">
           <div className="panel-head">
@@ -269,6 +349,7 @@ function SettingsForm({ initial }: { initial: InitialSettings }) {
             activityTracking: tracking,
             notificationOptIn: notifications,
             analyticsPeriodDays: period,
+            analyticsRetentionDays: retentionDays,
           })
         }
         disabled={save.isPending}

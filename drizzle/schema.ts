@@ -39,6 +39,7 @@ export const userSettings = mysqlTable(
       .default("disabled")
       .notNull(),
     analyticsPeriodDays: int("analyticsPeriodDays").default(30).notNull(),
+    analyticsRetentionDays: int("analyticsRetentionDays").default(90).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },

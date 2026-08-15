@@ -27,9 +27,17 @@ describe("analytics.activityStreak", () => {
     vi.clearAllMocks();
     mocks.activeDates = [];
     mocks.getDb.mockResolvedValue({
+      insert: vi.fn(() => ({
+        values: vi.fn(() => ({
+          onDuplicateKeyUpdate: vi.fn(async () => undefined),
+        })),
+      })),
       select: vi.fn(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
+            limit: vi.fn(async () => [
+              { id: 1, userId: 1, analyticsRetentionDays: 90 },
+            ]),
             groupBy: vi.fn(() => ({
               orderBy: vi.fn(async () => mocks.activeDates),
             })),

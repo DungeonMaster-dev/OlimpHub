@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `analyticsRetentionDays` int DEFAULT 90 NOT NULL;
