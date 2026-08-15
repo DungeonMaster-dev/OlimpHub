@@ -102,3 +102,5 @@
 - [x] Implement P1-1005 deterministic owner-scoped problem recommendations from real catalogue and recorded learning evidence, with explicit reasons, exclusions and editable handoff.
 - [x] Implement P1-1006 dedicated owner-scoped training recommendations from persisted evidence with deterministic selection, explicit limits and editable creation handoff.
 - [x] Audit and implement P1-1007 owner-scoped terminal contest analysis from persisted performance and autopsy evidence without rating, rank, skill or causal inference.
+- [x] Implement P1-1008 replay-only progressive guidance bounded by the server-enforced hint level, without generating new hint or solution content.
+- [ ] Implement P1-1009 server-side learning-mode solution-leakage guard that detects or sanitizes overly detailed stored hint content before it reaches progressive guidance.

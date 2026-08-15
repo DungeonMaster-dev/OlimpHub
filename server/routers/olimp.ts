@@ -1,7 +1,18 @@
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { parse as parseCookie } from "cookie";
-import { and, asc, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  like,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import { COOKIE_NAME } from "@shared/const";
 import { editorActiveIntervalSeconds } from "@shared/activityTracking";
@@ -52,6 +63,7 @@ import {
   buildAnalyticsEvidence,
   nextPermittedHintLevel,
 } from "../domain/learning";
+import { buildProgressiveGuidance } from "../domain/progressiveGuidance";
 import { createActivityEventId } from "../domain/idempotency";
 import {
   canBeginCodeforcesSync,
@@ -1477,6 +1489,26 @@ export const olimpRouter = router({
           metadata: { level: nextLevel },
         });
         return { level: nextLevel, content: hint.content };
+      }),
+    progressiveGuidance: protectedProcedure
+      .input(z.object({ attemptId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const attempt = await getOwnedAttempt(ctx.user.id, input.attemptId);
+        const revealedHints = await db
+          .select({ level: problemHints.level, content: problemHints.content })
+          .from(problemHints)
+          .where(
+            and(
+              eq(problemHints.problemId, attempt.problemId),
+              lte(problemHints.level, attempt.highestHintLevel)
+            )
+          )
+          .orderBy(asc(problemHints.level));
+        return buildProgressiveGuidance({
+          highestRevealedLevel: attempt.highestHintLevel,
+          hints: revealedHints,
+        });
       }),
   }),
 

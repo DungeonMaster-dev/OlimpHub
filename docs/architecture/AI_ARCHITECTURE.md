@@ -194,3 +194,7 @@ a separate unbounded coach recommendation path.
 The P1-1006 editable training-plan contract is specified in
 [AI_TRAINING_RECOMMENDATIONS.md](./AI_TRAINING_RECOMMENDATIONS.md). It uses
 only eligible-problem and bounded completed-attempt timing evidence.
+
+The P1-1008 server-bounded progressive guidance contract is specified in
+[AI_PROGRESSIVE_GUIDANCE.md](./AI_PROGRESSIVE_GUIDANCE.md). It can never add
+unrevealed hint content or a solution to a learning-mode response.

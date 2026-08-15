@@ -56,8 +56,17 @@ export default function Workspace() {
     onSuccess: () => utils.olimp.catalogue.detail.invalidate({ problemId }),
   });
   const nextHint = trpc.olimp.workspace.nextHint.useMutation({
-    onSuccess: data => setHint(data),
+    onSuccess: data => {
+      setHint(data);
+      utils.olimp.workspace.progressiveGuidance.invalidate({
+        attemptId: attemptId!,
+      });
+    },
   });
+  const guidance = trpc.olimp.workspace.progressiveGuidance.useQuery(
+    { attemptId: attemptId ?? 0 },
+    { enabled: attemptId !== null }
+  );
   useEffect(() => {
     const loadedProblemId = detail.data?.problem.id;
     if (!loadedProblemId) return;
@@ -238,6 +247,35 @@ export default function Workspace() {
                 </p>
               </div>
             )}
+            {guidance.data?.status === "available" ? (
+              <div className="mt-4 rounded-xl border border-white/[.06] bg-white/[.02] p-4">
+                <p className="text-[10px] uppercase tracking-[.16em] text-slate-500">
+                  Guided recap · {guidance.data.calculationVersion}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  This repeats only approved hints you have already revealed. It
+                  does not provide a full solution or a later-level hint.
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {guidance.data.guidance.map(entry => (
+                    <li
+                      key={entry.level}
+                      className="text-sm leading-6 text-slate-300"
+                    >
+                      <span className="mr-2 font-mono text-xs text-indigo-200">
+                        L{entry.level + 1}
+                      </span>
+                      {entry.content}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : attemptId && guidance.data?.status === "request_first_hint" ? (
+              <p className="mt-4 text-xs leading-5 text-slate-500">
+                Reveal the first approved hint to begin a level-bounded guidance
+                recap.
+              </p>
+            ) : null}
             <button
               onClick={() =>
                 attemptId ? nextHint.mutate({ attemptId }) : launch()

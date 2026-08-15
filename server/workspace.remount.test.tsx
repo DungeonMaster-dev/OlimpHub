@@ -25,7 +25,10 @@ vi.mock("@/lib/trpc", () => ({
     useUtils: () => ({
       olimp: {
         catalogue: { detail: { invalidate: vi.fn() } },
-        workspace: { notes: { invalidate: vi.fn() } },
+        workspace: {
+          notes: { invalidate: vi.fn() },
+          progressiveGuidance: { invalidate: vi.fn() },
+        },
       },
     }),
     olimp: {
@@ -73,6 +76,9 @@ vi.mock("@/lib/trpc", () => ({
         },
         nextHint: {
           useMutation: () => ({ mutate: vi.fn(), isPending: false }),
+        },
+        progressiveGuidance: {
+          useQuery: () => ({ data: undefined, isLoading: false, error: null }),
         },
       },
     },
