@@ -111,6 +111,75 @@ describe("training session activity tracking", () => {
     );
   });
 
+  it("promotes the next queued item server-side when the active item reaches a terminal state", async () => {
+    mocks.selectResults = [
+      [{ id: 7, userId: 1, status: "active" }],
+      [{ id: 12, sessionId: 7, problemId: 9, status: "active" }],
+      [
+        { id: 12, position: 0, status: "completed" },
+        { id: 13, position: 1, status: "queued" },
+      ],
+    ];
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.training.updateItem({
+        sessionId: 7,
+        itemId: 12,
+        status: "completed",
+      })
+    ).resolves.toEqual({ success: true });
+
+    expect(mocks.updates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "completed" }),
+        expect.objectContaining({ status: "active" }),
+      ])
+    );
+    expect(mocks.writes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: 1,
+          eventType: "training_item_active",
+          metadata: { sessionId: 7, itemId: 13 },
+        }),
+      ])
+    );
+  });
+
+  it("rejects resolving a queued item out of order before persisting a transition", async () => {
+    mocks.selectResults = [
+      [{ id: 7, userId: 1, status: "active" }],
+      [{ id: 13, sessionId: 7, problemId: 10, status: "queued" }],
+    ];
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.training.updateItem({
+        sessionId: 7,
+        itemId: 13,
+        status: "completed",
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(mocks.updates).toEqual([]);
+    expect(mocks.writes).toEqual([]);
+  });
+
+  it("rejects client-driven queued-to-active promotion so a session cannot gain multiple active items", async () => {
+    mocks.selectResults = [
+      [{ id: 7, userId: 1, status: "active" }],
+      [{ id: 13, sessionId: 7, problemId: 10, status: "queued" }],
+    ];
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.training.updateItem({
+        sessionId: 7,
+        itemId: 13,
+        status: "active",
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(mocks.updates).toEqual([]);
+    expect(mocks.writes).toEqual([]);
+  });
+
   it("persists an ordered manual session once and replays an identical request without duplicating it", async () => {
     mocks.selectResults = [
       [

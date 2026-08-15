@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Check,
   ChevronLeft,
@@ -38,15 +39,6 @@ export default function TrainingSession() {
   const advance = async (status: "completed" | "skipped") => {
     if (!active) return;
     await updateItem.mutateAsync({ sessionId, itemId: active.item.id, status });
-    const next = detail.data!.items.find(
-      ({ item }) => item.status === "queued"
-    );
-    if (next)
-      await updateItem.mutateAsync({
-        sessionId,
-        itemId: next.item.id,
-        status: "active",
-      });
   };
   return (
     <div className="max-w-5xl space-y-6">

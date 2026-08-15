@@ -1286,6 +1286,11 @@ export const olimpRouter = router({
             code: "NOT_FOUND",
             message: "Training session not found.",
           });
+        if (session.status !== "active")
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Training session is not active.",
+          });
         const item = (
           await db
             .select()
@@ -1302,6 +1307,19 @@ export const olimpRouter = router({
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Training item not found.",
+          });
+        const terminalRequest =
+          input.status === "completed" || input.status === "skipped";
+        if (terminalRequest && item.status !== "active")
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Only the active training item can be resolved.",
+          });
+        if (input.status === "active" && item.status !== "active")
+          throw new TRPCError({
+            code: "CONFLICT",
+            message:
+              "Only the server may promote the next queued training item.",
           });
         const nextStatus = nextTrainingItemStatus(item.status, input.status);
         if (nextStatus === item.status)
@@ -1320,9 +1338,14 @@ export const olimpRouter = router({
           metadata: { sessionId: session.id, itemId: item.id },
         });
         const sessionItems = await db
-          .select({ status: trainingItems.status })
+          .select({
+            id: trainingItems.id,
+            status: trainingItems.status,
+            position: trainingItems.position,
+          })
           .from(trainingItems)
-          .where(eq(trainingItems.sessionId, session.id));
+          .where(eq(trainingItems.sessionId, session.id))
+          .orderBy(asc(trainingItems.position));
         if (
           isTrainingSessionComplete(sessionItems.map(entry => entry.status))
         ) {
@@ -1335,6 +1358,21 @@ export const olimpRouter = router({
             eventType: "training_completed",
             metadata: { sessionId: session.id, itemCount: sessionItems.length },
           });
+        } else if (terminalRequest) {
+          const nextItem = sessionItems.find(
+            entry => entry.status === "queued"
+          );
+          if (nextItem) {
+            await db
+              .update(trainingItems)
+              .set({ status: "active" })
+              .where(eq(trainingItems.id, nextItem.id));
+            await writeActivity({
+              userId: ctx.user.id,
+              eventType: "training_item_active",
+              metadata: { sessionId: session.id, itemId: nextItem.id },
+            });
+          }
         }
         return { success: true };
       }),
