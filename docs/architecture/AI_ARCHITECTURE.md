@@ -185,3 +185,8 @@ predictions.
 The P1-1004 repeated attempt-evidence contract is specified in
 [AI_RECURRING_PATTERNS.md](./AI_RECURRING_PATTERNS.md). It reports only
 thresholded stored patterns and explicitly excludes causal diagnosis.
+
+The P1-1005 recommendation contract is specified in
+[AI_PROBLEM_RECOMMENDATIONS.md](./AI_PROBLEM_RECOMMENDATIONS.md). It reuses
+the deterministic, owner-scoped adaptive-training selection rules rather than
+a separate unbounded coach recommendation path.

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
-import { CheckCircle2, ListPlus, Play, Plus } from "lucide-react";
+import { CheckCircle2, ListPlus, Play, Plus, Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { selectDailySurpriseProblemIds } from "@shared/trainingSurprise";
 import { Empty, ErrorState } from "./Home";
@@ -8,6 +8,9 @@ import { Empty, ErrorState } from "./Home";
 export default function Training() {
   const sessions = trpc.olimp.training.list.useQuery();
   const adaptive = trpc.olimp.training.adaptive.useQuery({ count: 6 });
+  const problemRecommendations = trpc.olimp.ai.problemRecommendations.useQuery({
+    count: 4,
+  });
   const catalogue = trpc.olimp.catalogue.list.useQuery({
     page: 0,
     pageSize: 8,
@@ -201,7 +204,140 @@ export default function Training() {
           )}
         </div>
       </section>
+      <ProblemRecommendations
+        recommendations={problemRecommendations.data}
+        loading={problemRecommendations.isLoading}
+        error={problemRecommendations.error?.message}
+        onUseRecommendations={problemIds => {
+          setTitle("Recommended practice");
+          setSelected(problemIds);
+        }}
+      />
     </div>
+  );
+}
+
+export function ProblemRecommendations({
+  recommendations,
+  loading,
+  error,
+  onUseRecommendations,
+}: {
+  recommendations:
+    | {
+        calculationVersion: string;
+        status: "ready" | "insufficient_catalogue";
+        progression: {
+          status: "estimated" | "insufficient_evidence";
+          reason: string;
+          targetDifficulty: number | null;
+        };
+        exclusions: string[];
+        recommendations: Array<{
+          problem: { id: number; title: string; difficulty: number | null };
+          reasonCode: string;
+          reason: string;
+        }>;
+        limitations: string[];
+      }
+    | undefined;
+  loading: boolean;
+  error?: string;
+  onUseRecommendations: (problemIds: number[]) => void;
+}) {
+  if (loading)
+    return (
+      <section className="h-48 animate-pulse rounded-3xl bg-white/[.04]" />
+    );
+  if (error)
+    return (
+      <section className="panel" role="alert">
+        <p className="eyebrow">PERSONAL RECOMMENDATIONS</p>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          Problem recommendations are unavailable right now. Your session form
+          remains fully editable.
+        </p>
+      </section>
+    );
+  if (!recommendations || recommendations.status === "insufficient_catalogue")
+    return (
+      <section className="panel">
+        <p className="eyebrow">PERSONAL RECOMMENDATIONS</p>
+        <h3 className="mt-2">Awaiting imported catalogue problems</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          No real catalogue candidates are available yet. Recommendations will
+          appear only after problems are imported.
+        </p>
+      </section>
+    );
+  if (!recommendations.recommendations.length)
+    return (
+      <section className="panel">
+        <p className="eyebrow">PERSONAL RECOMMENDATIONS</p>
+        <h3 className="mt-2">No eligible problems right now</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          Recorded terminal progress and active training or contest assignments
+          are excluded from this factual selection.
+        </p>
+      </section>
+    );
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">PERSONAL RECOMMENDATIONS</p>
+          <h3>Choose your next problem</h3>
+        </div>
+        <span className="tag">{recommendations.calculationVersion}</span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        Selected from real catalogue and stored workspace facts. Reasons show
+        why each item is eligible; they do not predict outcomes.
+      </p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">
+        {recommendations.progression.reason}
+      </p>
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {recommendations.recommendations.map(recommendation => (
+          <article
+            key={recommendation.problem.id}
+            className="rounded-xl border border-white/[.06] bg-white/[.02] p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h4 className="min-w-0 text-sm font-medium text-slate-200">
+                {recommendation.problem.title}
+              </h4>
+              <span className="font-mono text-xs text-slate-500">
+                {recommendation.problem.difficulty ?? "—"}
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              {recommendation.reason}
+            </p>
+          </article>
+        ))}
+      </div>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs leading-5 text-slate-600">
+          Suggested items are preselected in the editable session form; change
+          them before creating a session.
+        </p>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() =>
+            onUseRecommendations(
+              recommendations.recommendations.map(
+                recommendation => recommendation.problem.id
+              )
+            )
+          }
+        >
+          <Sparkles className="h-4 w-4" />
+          Use recommended problems
+        </button>
+      </div>
+    </section>
   );
 }
 

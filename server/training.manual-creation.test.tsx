@@ -52,6 +52,26 @@ vi.mock("@/lib/trpc", () => ({
           useQuery: mocks.catalogueQuery,
         },
       },
+      ai: {
+        problemRecommendations: {
+          useQuery: () => ({
+            data: {
+              calculationVersion: "problem-recommendations-v1",
+              status: "insufficient_catalogue",
+              progression: {
+                status: "insufficient_evidence",
+                targetDifficulty: null,
+                reason: "Need verified solved difficulty evidence.",
+              },
+              exclusions: [],
+              recommendations: [],
+              limitations: [],
+            },
+            isLoading: false,
+            error: null,
+          }),
+        },
+      },
       training: {
         adaptive: {
           useQuery: () => ({

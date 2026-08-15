@@ -99,3 +99,4 @@
 - [x] Implement P1-1002 minimal owner-scoped structured AI user-context builder from factual learning and contest evidence without free-form private content.
 - [x] Implement P1-1003 explainable factual progress analysis from protected aggregate user context without ability, rank or outcome prediction.
 - [x] Implement P1-1004 recurring-mistake detection from repeated owner-scoped persisted evidence without inferring causes or exposing notes, source code or raw activity metadata.
+- [x] Implement P1-1005 deterministic owner-scoped problem recommendations from real catalogue and recorded learning evidence, with explicit reasons, exclusions and editable handoff.

@@ -37,6 +37,10 @@ import { getDb } from "../db";
 import { generateStructured } from "../ai/modelProvider";
 import { buildStructuredUserContext } from "../ai/userContext";
 import { buildFactualProgressAnalysis } from "../domain/progressAnalysis";
+import {
+  buildProblemRecommendationProjection,
+  problemRecommendationCalculationVersion,
+} from "../domain/problemRecommendations";
 import { buildRecurringPatternAnalysis } from "../domain/recurringPatterns";
 import { createHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
@@ -586,6 +590,126 @@ export const olimpRouter = router({
         .where(eq(solvingAttempts.userId, ctx.user.id));
       return buildRecurringPatternAnalysis(attempts);
     }),
+    problemRecommendations: protectedProcedure
+      .input(z.object({ count: z.number().int().min(1).max(8).default(4) }))
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const candidates = await db
+          .select({
+            id: problems.id,
+            title: problems.title,
+            difficulty: problems.difficulty,
+            tags: problems.tags,
+          })
+          .from(problems)
+          .orderBy(asc(problems.difficulty), asc(problems.id))
+          .limit(120);
+        if (!candidates.length) {
+          return {
+            ...buildProblemRecommendationProjection({
+              candidates: [],
+              solvedDifficulties: [],
+              count: input.count,
+            }),
+            recommendations: [],
+          };
+        }
+        const candidateIds = candidates.map(problem => problem.id);
+        const [
+          progressRows,
+          activeTrainingRows,
+          activeContestRows,
+          solvedDifficultyRows,
+        ] = await Promise.all([
+          db
+            .select({
+              problemId: userProblemProgress.problemId,
+              status: userProblemProgress.status,
+            })
+            .from(userProblemProgress)
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                inArray(userProblemProgress.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ problemId: trainingItems.problemId })
+            .from(trainingItems)
+            .innerJoin(
+              trainingSessions,
+              eq(trainingItems.sessionId, trainingSessions.id)
+            )
+            .where(
+              and(
+                eq(trainingSessions.userId, ctx.user.id),
+                eq(trainingSessions.status, "active"),
+                inArray(trainingItems.status, ["active", "queued"]),
+                inArray(trainingItems.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ problemId: contestItems.problemId })
+            .from(contestItems)
+            .innerJoin(
+              contestSessions,
+              eq(contestItems.sessionId, contestSessions.id)
+            )
+            .where(
+              and(
+                eq(contestSessions.userId, ctx.user.id),
+                eq(contestSessions.status, "active"),
+                inArray(contestItems.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ difficulty: problems.difficulty })
+            .from(userProblemProgress)
+            .innerJoin(problems, eq(userProblemProgress.problemId, problems.id))
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                eq(userProblemProgress.status, "solved")
+              )
+            )
+            .orderBy(desc(userProblemProgress.solvedAt))
+            .limit(minimumSolvedDifficultiesForProgression),
+        ]);
+        const progressByProblem = new Map(
+          progressRows.map(progress => [progress.problemId, progress.status])
+        );
+        const activeTrainingProblemIds = new Set(
+          activeTrainingRows.map(item => item.problemId)
+        );
+        const activeContestProblemIds = new Set(
+          activeContestRows.map(item => item.problemId)
+        );
+        const projection = buildProblemRecommendationProjection({
+          candidates: candidates.map(problem => ({
+            problemId: problem.id,
+            difficulty: problem.difficulty,
+            progressStatus: progressByProblem.get(problem.id) ?? null,
+            availability: activeTrainingProblemIds.has(problem.id)
+              ? "active_training"
+              : activeContestProblemIds.has(problem.id)
+                ? "active_contest"
+                : "eligible",
+          })),
+          solvedDifficulties: solvedDifficultyRows.map(item => item.difficulty),
+          count: input.count,
+        });
+        const problemById = new Map(
+          candidates.map(problem => [problem.id, problem])
+        );
+        return {
+          ...projection,
+          calculationVersion: problemRecommendationCalculationVersion,
+          recommendations: projection.recommendations.map(recommendation => ({
+            problem: problemById.get(recommendation.problemId)!,
+            ...recommendation,
+          })),
+        };
+      }),
   }),
   sourceHealth: router({
     list: adminProcedure.query(async () => {
