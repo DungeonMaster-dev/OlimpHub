@@ -77,3 +77,5 @@
 - [x] Implement P1-706 privacy-safe explainable mastery reason codes derived from deterministic evidence factors.
 - [x] Implement P1-707 accessible visual dependency graph for the current published taxonomy with a readable path-list fallback.
 - [x] Audit and complete P1-708 mastery regression coverage for scoring, insufficient evidence, bounded graph context and private reason content.
+- [x] Replace the manual P1-801 browser-auth dependency with an automated UI journey over imported-problem fixtures, without altering production OAuth or authorization.
+- [x] Add a true owner-context P1-801 router integration regression that verifies persisted imported-problem session creation, ordered active/queued items and detail/continuation state together.

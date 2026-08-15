@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import React from "react";
 import {
   ArrowRight,
   CirclePlay,

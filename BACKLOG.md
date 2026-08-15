@@ -133,7 +133,7 @@
 
 # Phase 8 — Training Engine
 
-- [ ] P1-801 Implement manual training creation.
+- [x] P1-801 Implement manual training creation. The protected Training UI creates a focused ordered session from selected imported problems; persistence is owner-scoped, the first item is active, remaining items are queued, unavailable selections are rejected before any session write and a repeated UUID request replays its original result without duplication. Automated UI, owner-context protected-router create-to-detail continuity and anonymous-access regressions validate the workflow without altering production OAuth; 103 tests and all quality gates pass.
 - [ ] P1-802 Implement adaptive problem selection.
 - [ ] P1-803 Account for weak skills and recent exposure.
 - [ ] P1-804 Estimate expected solve time.
