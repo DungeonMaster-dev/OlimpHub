@@ -522,11 +522,19 @@ export const contestSessions = mysqlTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     title: varchar("title", { length: 180 }).notNull(),
-    status: mysqlEnum("status", ["draft", "active", "completed", "archived"])
+    status: mysqlEnum("status", [
+      "draft",
+      "active",
+      "completed",
+      "expired",
+      "archived",
+    ])
       .default("draft")
       .notNull(),
+    durationMinutes: int("durationMinutes").default(120).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     startedAt: timestamp("startedAt"),
+    expiresAt: timestamp("expiresAt"),
     completedAt: timestamp("completedAt"),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Check,
   ChevronLeft,
@@ -11,17 +11,33 @@ import { trpc } from "@/lib/trpc";
 import { summarizeContestOutcomes } from "@shared/contestAnalysis";
 import { ErrorState } from "./Home";
 
+function formatRemainingTime(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+}
+
 export default function ContestSession() {
   const [, params] = useRoute("/contests/:id");
   const sessionId = Number(params?.id);
   const utils = trpc.useUtils();
   const detail = trpc.olimp.contests.detail.useQuery(
     { sessionId },
-    { enabled: Number.isInteger(sessionId) && sessionId > 0 }
+    {
+      enabled: Number.isInteger(sessionId) && sessionId > 0,
+      refetchInterval: 30_000,
+    }
   );
   const updateItem = trpc.olimp.contests.updateItem.useMutation({
     onSuccess: () => utils.olimp.contests.detail.invalidate({ sessionId }),
   });
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!detail.data?.timer?.expiresAt || detail.data.timer.isExpired) return;
+    const timer = window.setInterval(() => setClockMs(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [detail.data?.timer?.expiresAt, detail.data?.timer?.isExpired]);
 
   if (detail.isLoading)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
@@ -40,6 +56,12 @@ export default function ContestSession() {
   const analysis = summarizeContestOutcomes(
     detail.data.items.map(({ item }) => item.status)
   );
+  const isExpired = detail.data.session.status === "expired";
+  const deadlineMs = detail.data.timer.expiresAt?.getTime() ?? null;
+  const remainingSeconds =
+    deadlineMs === null
+      ? detail.data.timer.remainingSeconds
+      : Math.max(0, Math.ceil((deadlineMs - clockMs) / 1_000));
   const advance = (status: "completed" | "skipped") => {
     if (!active) return;
     updateItem.mutate({ sessionId, itemId: active.item.id, status });
@@ -64,9 +86,22 @@ export default function ContestSession() {
             {detail.data.session.title}
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-slate-400">
-            Ordered problem lifecycle only. Timer, scoring and penalties are not
-            part of this session view.
+            Ordered problem lifecycle with a server-derived deadline. Scoring
+            and penalties are not part of this session view.
           </p>
+          {detail.data.timer.expiresAt ? (
+            <div className="mt-5 inline-flex items-end gap-3 rounded-2xl border border-amber-200/15 bg-amber-100/[.04] px-4 py-3">
+              <div>
+                <p className="eyebrow text-amber-200">TIME REMAINING</p>
+                <p className="mt-1 font-mono text-2xl font-medium text-amber-50">
+                  {formatRemainingTime(remainingSeconds ?? 0)}
+                </p>
+              </div>
+              <p className="pb-1 text-xs text-slate-500">
+                {detail.data.timer.durationMinutes} minute limit
+              </p>
+            </div>
+          ) : null}
           <div className="mt-6 flex gap-1.5">
             {detail.data.items.map(({ item }) => (
               <span
@@ -78,7 +113,18 @@ export default function ContestSession() {
         </div>
       </section>
 
-      {active ? (
+      {isExpired ? (
+        <section className="panel text-center">
+          <p className="eyebrow">TIME EXPIRED</p>
+          <h2 className="mt-3 text-2xl font-medium">
+            This contest can no longer advance.
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            The deadline is persisted by the server. No score, penalty or
+            performance conclusion has been calculated.
+          </p>
+        </section>
+      ) : active ? (
         <section className="grid gap-6 lg:grid-cols-[1fr_.35fr]">
           <div className="panel">
             <p className="eyebrow">

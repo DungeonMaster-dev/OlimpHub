@@ -145,7 +145,7 @@
 # Phase 9 — Contest Engine
 
 - [x] P1-901 Implement virtual contest lifecycle.
-- [ ] P1-902 Implement contest timer.
+- [x] P1-902 Implement contest timer. A draft persists a server-validated 15–480 minute duration; start writes an immutable server-derived deadline; protected reads and item mutations materialize expired sessions and block further advancement. Contest UI renders a local countdown from that server deadline and does not claim score, penalty, rank or performance. Migration, timer domain/router/UI regressions and final quality gates pass.
 - [ ] P1-903 Implement scoring and penalty systems.
 - [ ] P1-904 Implement contest problem selection.
 - [ ] P1-905 Implement AI-generated personalized contests.

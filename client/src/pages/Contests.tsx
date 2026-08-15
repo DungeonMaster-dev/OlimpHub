@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 export default function Contests() {
   const [title, setTitle] = useState("Virtual contest");
   const [selected, setSelected] = useState<number[]>([]);
+  const [durationMinutes, setDurationMinutes] = useState(120);
   const utils = trpc.useUtils();
   const catalogue = trpc.olimp.catalogue.list.useQuery({
     page: 0,
@@ -50,6 +51,20 @@ export default function Contests() {
             value={title}
             onChange={event => setTitle(event.target.value)}
           />
+          <label className="mt-4 block text-sm text-slate-300">
+            Contest duration
+            <select
+              aria-label="Contest duration"
+              className="input-dark mt-2"
+              value={durationMinutes}
+              onChange={event => setDurationMinutes(Number(event.target.value))}
+            >
+              <option value={60}>60 minutes</option>
+              <option value={120}>120 minutes</option>
+              <option value={180}>180 minutes</option>
+              <option value={240}>240 minutes</option>
+            </select>
+          </label>
           <div className="mt-5 space-y-2">
             {catalogue.data?.items.map(({ problem }) => (
               <label
@@ -79,6 +94,7 @@ export default function Contests() {
               create.mutate({
                 title,
                 problemIds: selected,
+                durationMinutes,
                 requestId: crypto.randomUUID(),
               })
             }

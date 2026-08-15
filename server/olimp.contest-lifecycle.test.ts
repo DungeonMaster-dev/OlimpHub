@@ -75,6 +75,7 @@ describe("virtual contest lifecycle", () => {
       appRouter.createCaller(userContext()).olimp.contests.create({
         title: "Graph and combinatorics set",
         problemIds: [8, 13],
+        durationMinutes: 180,
       })
     ).resolves.toEqual({ id: 701 });
 
@@ -84,6 +85,7 @@ describe("virtual contest lifecycle", () => {
           userId: 1,
           title: "Graph and combinatorics set",
           status: "draft",
+          durationMinutes: 180,
         }),
         [
           expect.objectContaining({
@@ -103,7 +105,7 @@ describe("virtual contest lifecycle", () => {
 
   it("starts only an owned draft and server-activates its first queued problem", async () => {
     mocks.selectResults = [
-      [{ id: 7, userId: 1, status: "draft" }],
+      [{ id: 7, userId: 1, status: "draft", durationMinutes: 120 }],
       [{ id: 12 }],
     ];
 
@@ -127,7 +129,7 @@ describe("virtual contest lifecycle", () => {
         expect.objectContaining({
           userId: 1,
           eventType: "contest_started",
-          metadata: { sessionId: 7, itemId: 12 },
+          metadata: { sessionId: 7, itemId: 12, durationMinutes: 120 },
         }),
       ])
     );
@@ -248,5 +250,68 @@ describe("virtual contest lifecycle", () => {
     );
     expect(JSON.stringify(mocks.writes)).not.toContain("score");
     expect(JSON.stringify(mocks.writes)).not.toContain("penalty");
+  });
+
+  it("materializes a server-observed deadline as expired before rejecting further item resolution", async () => {
+    mocks.selectResults = [
+      [
+        {
+          id: 7,
+          userId: 1,
+          status: "active",
+          durationMinutes: 60,
+          expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      ],
+    ];
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.contests.updateItem({
+        sessionId: 7,
+        itemId: 12,
+        status: "completed",
+      })
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+
+    expect(mocks.updates).toEqual(
+      expect.arrayContaining([expect.objectContaining({ status: "expired" })])
+    );
+    expect(mocks.writes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: 1,
+          eventType: "contest_expired",
+          metadata: { sessionId: 7, durationMinutes: 60 },
+        }),
+      ])
+    );
+  });
+
+  it("returns server-derived zero remaining time after materializing an expired detail view", async () => {
+    mocks.selectResults = [
+      [
+        {
+          id: 7,
+          userId: 1,
+          status: "active",
+          durationMinutes: 60,
+          expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      ],
+      [],
+    ];
+
+    await expect(
+      appRouter
+        .createCaller(userContext())
+        .olimp.contests.detail({ sessionId: 7 })
+    ).resolves.toMatchObject({
+      session: { id: 7, status: "expired" },
+      timer: {
+        durationMinutes: 60,
+        remainingSeconds: 0,
+        isExpired: true,
+      },
+    });
   });
 });

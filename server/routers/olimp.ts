@@ -62,6 +62,14 @@ import { classifySourceSyncFailure } from "../domain/syncOutcome";
 import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
 import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
+  contestExpiresAt,
+  defaultContestDurationMinutes,
+  hasContestExpired,
+  maximumContestDurationMinutes,
+  minimumContestDurationMinutes,
+  remainingContestSeconds,
+} from "../domain/contestTimer";
+import {
   adaptiveTrainingCalculationVersion,
   calculateDifficultyProgression,
   calculateExpectedSolveTime,
@@ -249,6 +257,37 @@ async function withMutationReceipt<T extends Record<string, unknown>>(
     await failMutationReceipt(userId, operation, requestId, receipt.ownerToken);
     throw error;
   }
+}
+
+async function materializeContestExpiration(
+  session: typeof contestSessions.$inferSelect,
+  userId: number
+) {
+  if (
+    session.status !== "active" ||
+    !hasContestExpired(session.expiresAt ?? null)
+  )
+    return session;
+  const db = await requireDb();
+  await db
+    .update(contestSessions)
+    .set({ status: "expired" })
+    .where(
+      and(
+        eq(contestSessions.id, session.id),
+        eq(contestSessions.userId, userId),
+        eq(contestSessions.status, "active")
+      )
+    );
+  await writeActivity({
+    userId,
+    eventType: "contest_expired",
+    metadata: {
+      sessionId: session.id,
+      durationMinutes: session.durationMinutes ?? defaultContestDurationMinutes,
+    },
+  });
+  return { ...session, status: "expired" };
 }
 
 async function getOwnedAttempt(userId: number, attemptId: number) {
@@ -1383,17 +1422,28 @@ export const olimpRouter = router({
   contests: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await requireDb();
-      return db
+      const sessions = await db
         .select()
         .from(contestSessions)
         .where(eq(contestSessions.userId, ctx.user.id))
         .orderBy(desc(contestSessions.updatedAt));
+      return Promise.all(
+        sessions.map(session =>
+          materializeContestExpiration(session, ctx.user.id)
+        )
+      );
     }),
     create: protectedProcedure
       .input(
         z.object({
           title: z.string().trim().min(3).max(180),
           problemIds: z.array(z.number().int().positive()).min(1).max(20),
+          durationMinutes: z
+            .number()
+            .int()
+            .min(minimumContestDurationMinutes)
+            .max(maximumContestDurationMinutes)
+            .default(defaultContestDurationMinutes),
           requestId: z.string().uuid().optional(),
         })
       )
@@ -1420,6 +1470,7 @@ export const olimpRouter = router({
                   userId: ctx.user.id,
                   title: input.title,
                   status: "draft",
+                  durationMinutes: input.durationMinutes,
                 })
                 .$returningId()
             )[0]!.id;
@@ -1460,9 +1511,13 @@ export const olimpRouter = router({
             code: "CONFLICT",
             message: "Only a draft contest can be started.",
           });
+        const startedAt = new Date();
+        const durationMinutes =
+          session.durationMinutes ?? defaultContestDurationMinutes;
+        const expiresAt = contestExpiresAt(startedAt, durationMinutes);
         await db
           .update(contestSessions)
-          .set({ status: "active", startedAt: new Date() })
+          .set({ status: "active", startedAt, expiresAt })
           .where(eq(contestSessions.id, session.id));
         const firstItem = (
           await db
@@ -1489,7 +1544,11 @@ export const olimpRouter = router({
         await writeActivity({
           userId: ctx.user.id,
           eventType: "contest_started",
-          metadata: { sessionId: session.id, itemId: firstItem.id },
+          metadata: {
+            sessionId: session.id,
+            itemId: firstItem.id,
+            durationMinutes,
+          },
         });
         return { success: true };
       }),
@@ -1520,7 +1579,11 @@ export const olimpRouter = router({
             code: "NOT_FOUND",
             message: "Contest session not found.",
           });
-        if (session.status !== "active")
+        const timedSession = await materializeContestExpiration(
+          session,
+          ctx.user.id
+        );
+        if (timedSession.status !== "active")
           throw new TRPCError({
             code: "CONFLICT",
             message: "Contest session is not active.",
@@ -1627,13 +1690,29 @@ export const olimpRouter = router({
             code: "NOT_FOUND",
             message: "Contest session not found.",
           });
+        const timedSession = await materializeContestExpiration(
+          session,
+          ctx.user.id
+        );
         const items = await db
           .select({ item: contestItems, problem: problems })
           .from(contestItems)
           .innerJoin(problems, eq(contestItems.problemId, problems.id))
           .where(eq(contestItems.sessionId, session.id))
           .orderBy(asc(contestItems.position));
-        return { session, items };
+        return {
+          session: timedSession,
+          items,
+          timer: {
+            durationMinutes:
+              timedSession.durationMinutes ?? defaultContestDurationMinutes,
+            expiresAt: timedSession.expiresAt ?? null,
+            remainingSeconds: remainingContestSeconds(
+              timedSession.expiresAt ?? null
+            ),
+            isExpired: timedSession.status === "expired",
+          },
+        };
       }),
   }),
 

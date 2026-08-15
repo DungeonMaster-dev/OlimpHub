@@ -4,6 +4,10 @@
 
 P1-901 introduces private, owner-scoped virtual contest sessions. Contest data must remain separate from training sessions because contest timing, scoring and penalty policy are later Phase 9 responsibilities. The initial lifecycle persists only a title, ordered canonical problem references and explicit session state.
 
+The explicit duration, server-derived deadline and durable `expired` state added in
+P1-902 are specified in [CONTEST_TIMER.md](./CONTEST_TIMER.md). Timer facts
+remain distinct from the later scoring and penalty policy.
+
 ## Implemented state contract
 
 A contest session begins as `draft`, may become `active`, and finishes as `completed` or `archived`. Its ordered items are `queued`, `active`, `completed` or `skipped`. Starting an owned draft activates exactly the first queued item. Only one item may be active; clients can submit only terminal resolution states for that item. A terminal current-item transition promotes the next queued item server-side, while completion requires every item to be terminal.

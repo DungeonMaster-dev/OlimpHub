@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   completedSession: false,
+  expiredSession: false,
   invalidate: vi.fn(),
   update: vi.fn(),
 }));
@@ -32,7 +33,17 @@ vi.mock("@/lib/trpc", () => ({
               session: {
                 id: 701,
                 title: "Graph and combinatorics",
-                status: mocks.completedSession ? "completed" : "active",
+                status: mocks.completedSession
+                  ? "completed"
+                  : mocks.expiredSession
+                    ? "expired"
+                    : "active",
+              },
+              timer: {
+                durationMinutes: 120,
+                expiresAt: new Date(Date.now() + 7_200_000),
+                remainingSeconds: 7_200,
+                isExpired: mocks.expiredSession,
               },
               items: [
                 {
@@ -89,6 +100,7 @@ describe("contest session lifecycle UI", () => {
   afterEach(() => {
     cleanup();
     mocks.completedSession = false;
+    mocks.expiredSession = false;
     mocks.update.mockReset();
     mocks.invalidate.mockReset();
   });
@@ -106,6 +118,8 @@ describe("contest session lifecycle UI", () => {
     );
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.invalidate).toHaveBeenCalledWith({ sessionId: 701 });
+    expect(screen.getByText("TIME REMAINING")).toBeTruthy();
+    expect(screen.getByText("02:00:00")).toBeTruthy();
   });
 
   it("renders only a factual completed-session sequence summary", () => {
@@ -117,5 +131,13 @@ describe("contest session lifecycle UI", () => {
     expect(screen.getByText("SKIPPED")).toBeTruthy();
     expect(screen.getByText("100%")).toBeTruthy();
     expect(screen.queryByText(/score/i)).toBeNull();
+  });
+
+  it("renders the server-materialized expiration state instead of allowing another advance", () => {
+    mocks.expiredSession = true;
+    const screen = render(<ContestSession />);
+
+    expect(screen.getByText("TIME EXPIRED")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Complete item" })).toBeNull();
   });
 });
