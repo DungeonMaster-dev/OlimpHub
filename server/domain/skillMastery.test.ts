@@ -155,4 +155,59 @@ describe("skill mastery", () => {
       },
     ]);
   });
+
+  it("bounds extreme verified factor values and caps the final score", () => {
+    const [result] = calculateSkillMastery(
+      [7],
+      [
+        {
+          skillId: 7,
+          problemId: 1,
+          relevance: "primary",
+          difficulty: 9999,
+          attemptCount: 999,
+          solvedAt: new Date("2026-08-14T00:00:00.000Z"),
+        },
+        {
+          skillId: 7,
+          problemId: 2,
+          relevance: "primary",
+          difficulty: 9999,
+          attemptCount: 999,
+          solvedAt: new Date("2026-08-14T00:00:00.000Z"),
+        },
+        {
+          skillId: 7,
+          problemId: 3,
+          relevance: "primary",
+          difficulty: 9999,
+          attemptCount: 999,
+          solvedAt: new Date("2026-08-14T00:00:00.000Z"),
+        },
+        {
+          skillId: 7,
+          problemId: 4,
+          relevance: "primary",
+          difficulty: 9999,
+          attemptCount: 999,
+          solvedAt: new Date("2026-08-14T00:00:00.000Z"),
+        },
+      ],
+      new Map(),
+      new Date("2026-08-15T00:00:00.000Z")
+    );
+
+    expect(result).toMatchObject({
+      status: "estimated",
+      score: 100,
+      factors: {
+        directEvidence: 100,
+        difficulty: 80,
+        attempts: 24,
+        hints: 0,
+        recency: 32,
+        relatedSkillContext: 0,
+      },
+    });
+  });
 });

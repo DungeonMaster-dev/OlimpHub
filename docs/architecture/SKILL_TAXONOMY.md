@@ -136,6 +136,8 @@ P1-706 supplies those reasons directly from the deterministic result. `insuffici
 
 P1-707 renders the current published snapshot’s verified `prerequisite_of` edges as a layered SVG graph. Arrow direction always points toward the dependent skill, and node labels retain the approved skill title. The pre-existing textual prerequisite-path list remains below the graph as a readable fallback; neither visual form creates or infers relationships not contained in the versioned edge snapshot.
 
+P1-708 protects the mastery contract with deterministic regressions for duplicate evidence, insufficient-evidence behavior, multi-factor arithmetic, bounded related context, private reason output and extreme-input score caps. These checks keep calculation changes reviewable as later evidence factors are added.
+
 ## 9. Управление изменениями и качество графа
 
 Новая версия карты публикуется только после проверки: уникальности stable key, валидных локалей, отсутствия циклов в prerequisite-графе, отсутствия self-edge, понятного определения новых навыков и миграционной заметки. Удаление навыка заменяется `deprecated`-статусом и relation `replaced_by`; старые отчёты остаются читаемыми.

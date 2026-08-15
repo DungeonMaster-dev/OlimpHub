@@ -129,7 +129,7 @@
 - [x] P1-705 Incorporate difficulty, attempts, time, hints, recency and related skills. `skill-mastery-v2` adds only verified owner-scoped problem difficulty, attempt count, highest released hint level, solved recency and current-version `related_to` context. Related context is capped at five points and cannot turn insufficient direct evidence into an estimate. Domain regressions, live Skill Map review and quality gates pass.
 - [x] P1-706 Implement explainable mastery reasons. `skills.mastery` now returns deterministic reason codes and the three strongest factual contributors derived from the calculated factors; insufficient evidence reports the exact independent-solved threshold rather than a score. Reasons never expose problem statements, notes, hint content or solution text. Domain regression, visual Skill Map review and quality gates pass.
 - [x] P1-707 Implement skill graph visualization. Skill Map renders an accessible responsive SVG dependency graph from real current-version `prerequisite_of` edges, including labeled arrow direction and native SVG labels; the readable prerequisite-path list remains as the non-visual fallback. Live taxonomy review and quality gates pass.
-- [ ] P1-708 Add mastery regression tests.
+- [x] P1-708 Add mastery regression tests. Regression coverage verifies duplicate solved-problem deduplication, insufficient-evidence semantics, factor arithmetic for difficulty/attempts/hints/recency, five-point related-skill cap, non-promotion of insufficient evidence, privacy-safe reasons and bounded extreme inputs/final score. The full suite passes with 98 tests.
 
 # Phase 8 — Training Engine
 
