@@ -5,7 +5,7 @@ import {
   Info,
   TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { ErrorState } from "./Home";
 

@@ -115,7 +115,7 @@
 - [x] P1-604 Track hints/editorial interactions. Progressive hint release records an owner-scoped level-only activity fact and never copies hint content into metadata; privacy regression and final quality gates pass.
 - [~] P1-605 Track training and contest sessions. Training creation records a compact start fact; terminal item changes record owner-scoped factual activity and close the session once every item is completed or skipped. Contest-session tracking remains pending until P1-208 supplies a real contest lifecycle to track.
 - [x] P1-606 Distinguish active/focused/idle time. The private workspace editor records focus and blur boundaries, server-bounded 60-second active heartbeats, and a single idle transition after two minutes without input; events contain only an owner-scoped problem reference, surface and server-defined interval metadata. Router and real Workspace timer regressions pass.
-- [ ] P1-607 Implement activity timeline.
+- [x] P1-607 Implement activity timeline. The protected timeline API reads only owner-scoped persisted activity events, backfills daily zero-event buckets and retains explicit solved-status updates; Progress renders the factual daily chart and rating timeline. Domain, authorization and jsdom page regressions plus a visual route review pass.
 - [ ] P1-608 Implement daily/weekly/monthly statistics.
 - [ ] P1-609 Implement streak calculation.
 - [ ] P1-610 Add privacy controls and retention policy.

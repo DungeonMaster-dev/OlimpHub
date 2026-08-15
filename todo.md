@@ -64,3 +64,4 @@
 - [x] Implement P1-605 training-session portion: owner-scoped item/session completion activity with compact metadata and regressions.
 - [ ] Complete P1-605 contest-session activity tracking after P1-208 introduces a real contest lifecycle.
 - [x] Implement P1-606 privacy-safe active/focused/idle time tracking with bounded workspace editor heartbeats.
+- [x] Audit and complete P1-607 real persisted owner-scoped activity timeline API and Progress UI journey.
