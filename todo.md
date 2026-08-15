@@ -100,3 +100,4 @@
 - [x] Implement P1-1003 explainable factual progress analysis from protected aggregate user context without ability, rank or outcome prediction.
 - [x] Implement P1-1004 recurring-mistake detection from repeated owner-scoped persisted evidence without inferring causes or exposing notes, source code or raw activity metadata.
 - [x] Implement P1-1005 deterministic owner-scoped problem recommendations from real catalogue and recorded learning evidence, with explicit reasons, exclusions and editable handoff.
+- [x] Implement P1-1006 dedicated owner-scoped training recommendations from persisted evidence with deterministic selection, explicit limits and editable creation handoff.

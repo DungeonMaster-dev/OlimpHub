@@ -42,6 +42,10 @@ import {
   problemRecommendationCalculationVersion,
 } from "../domain/problemRecommendations";
 import { buildRecurringPatternAnalysis } from "../domain/recurringPatterns";
+import {
+  buildTrainingRecommendationPlan,
+  trainingRecommendationCalculationVersion,
+} from "../domain/trainingRecommendations";
 import { createHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
 import {
@@ -705,6 +709,161 @@ export const olimpRouter = router({
           ...projection,
           calculationVersion: problemRecommendationCalculationVersion,
           recommendations: projection.recommendations.map(recommendation => ({
+            problem: problemById.get(recommendation.problemId)!,
+            ...recommendation,
+          })),
+        };
+      }),
+    trainingRecommendations: protectedProcedure
+      .input(z.object({ count: z.number().int().min(1).max(8).default(4) }))
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const candidates = await db
+          .select({
+            id: problems.id,
+            title: problems.title,
+            difficulty: problems.difficulty,
+            tags: problems.tags,
+          })
+          .from(problems)
+          .orderBy(asc(problems.difficulty), asc(problems.id))
+          .limit(120);
+        if (!candidates.length) {
+          const plan = buildTrainingRecommendationPlan({
+            problemRecommendations: [],
+            expectedSolveTime: calculateExpectedSolveTime([]),
+          });
+          return {
+            ...plan,
+            problemRecommendationCalculationVersion,
+            trainingRecommendationCalculationVersion,
+            problemRecommendationStatus: "insufficient_catalogue" as const,
+            recommendations: [],
+          };
+        }
+        const candidateIds = candidates.map(problem => problem.id);
+        const [
+          progressRows,
+          activeTrainingRows,
+          activeContestRows,
+          solvedDifficultyRows,
+          completedAttemptRows,
+        ] = await Promise.all([
+          db
+            .select({
+              problemId: userProblemProgress.problemId,
+              status: userProblemProgress.status,
+            })
+            .from(userProblemProgress)
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                inArray(userProblemProgress.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ problemId: trainingItems.problemId })
+            .from(trainingItems)
+            .innerJoin(
+              trainingSessions,
+              eq(trainingItems.sessionId, trainingSessions.id)
+            )
+            .where(
+              and(
+                eq(trainingSessions.userId, ctx.user.id),
+                eq(trainingSessions.status, "active"),
+                inArray(trainingItems.status, ["active", "queued"]),
+                inArray(trainingItems.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ problemId: contestItems.problemId })
+            .from(contestItems)
+            .innerJoin(
+              contestSessions,
+              eq(contestItems.sessionId, contestSessions.id)
+            )
+            .where(
+              and(
+                eq(contestSessions.userId, ctx.user.id),
+                eq(contestSessions.status, "active"),
+                inArray(contestItems.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ difficulty: problems.difficulty })
+            .from(userProblemProgress)
+            .innerJoin(problems, eq(userProblemProgress.problemId, problems.id))
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                eq(userProblemProgress.status, "solved")
+              )
+            )
+            .orderBy(desc(userProblemProgress.solvedAt))
+            .limit(minimumSolvedDifficultiesForProgression),
+          db
+            .select({
+              startedAt: solvingAttempts.startedAt,
+              endedAt: solvingAttempts.endedAt,
+            })
+            .from(solvingAttempts)
+            .where(
+              and(
+                eq(solvingAttempts.userId, ctx.user.id),
+                eq(solvingAttempts.state, "completed"),
+                eq(solvingAttempts.outcome, "solved"),
+                sql`${solvingAttempts.endedAt} IS NOT NULL`
+              )
+            )
+            .orderBy(desc(solvingAttempts.endedAt))
+            .limit(minimumCompletedAttemptsForTimeEstimate),
+        ]);
+        const progressByProblem = new Map(
+          progressRows.map(progress => [progress.problemId, progress.status])
+        );
+        const activeTrainingProblemIds = new Set(
+          activeTrainingRows.map(item => item.problemId)
+        );
+        const activeContestProblemIds = new Set(
+          activeContestRows.map(item => item.problemId)
+        );
+        const problemProjection = buildProblemRecommendationProjection({
+          candidates: candidates.map(problem => ({
+            problemId: problem.id,
+            difficulty: problem.difficulty,
+            progressStatus: progressByProblem.get(problem.id) ?? null,
+            availability: activeTrainingProblemIds.has(problem.id)
+              ? "active_training"
+              : activeContestProblemIds.has(problem.id)
+                ? "active_contest"
+                : "eligible",
+          })),
+          solvedDifficulties: solvedDifficultyRows.map(item => item.difficulty),
+          count: input.count,
+        });
+        const expectedSolveTime = calculateExpectedSolveTime(
+          completedAttemptRows.map(item =>
+            item.endedAt
+              ? item.endedAt.getTime() - item.startedAt.getTime()
+              : null
+          )
+        );
+        const plan = buildTrainingRecommendationPlan({
+          problemRecommendations: problemProjection.recommendations,
+          expectedSolveTime,
+        });
+        const problemById = new Map(
+          candidates.map(problem => [problem.id, problem])
+        );
+        return {
+          ...plan,
+          problemRecommendationCalculationVersion,
+          trainingRecommendationCalculationVersion,
+          problemRecommendationStatus: problemProjection.status,
+          progression: problemProjection.progression,
+          expectedSolveTime,
+          recommendations: plan.recommendations.map(recommendation => ({
             problem: problemById.get(recommendation.problemId)!,
             ...recommendation,
           })),

@@ -11,6 +11,8 @@ export default function Training() {
   const problemRecommendations = trpc.olimp.ai.problemRecommendations.useQuery({
     count: 4,
   });
+  const trainingRecommendations =
+    trpc.olimp.ai.trainingRecommendations.useQuery({ count: 4 });
   const catalogue = trpc.olimp.catalogue.list.useQuery({
     page: 0,
     pageSize: 8,
@@ -213,7 +215,141 @@ export default function Training() {
           setSelected(problemIds);
         }}
       />
+      <TrainingRecommendationPlan
+        plan={trainingRecommendations.data}
+        loading={trainingRecommendations.isLoading}
+        error={trainingRecommendations.error?.message}
+        onUsePlan={handoff => {
+          setTitle(handoff.title);
+          setSelected(handoff.problemIds);
+        }}
+      />
     </div>
+  );
+}
+
+export function TrainingRecommendationPlan({
+  plan,
+  loading,
+  error,
+  onUsePlan,
+}: {
+  plan:
+    | {
+        calculationVersion: string;
+        status: "ready" | "no_eligible_problems";
+        problemRecommendationStatus: "ready" | "insufficient_catalogue";
+        creationHandoff: { title: string; problemIds: number[] } | null;
+        expectedDuration:
+          | {
+              status: "estimated";
+              expectedMinutes: number;
+              lowerMinutes: number;
+              upperMinutes: number;
+              reason: string;
+            }
+          | {
+              status: "insufficient_evidence";
+              expectedMinutes: null;
+              lowerMinutes: null;
+              upperMinutes: null;
+              reason: string;
+            };
+        recommendations: Array<{
+          problem: { id: number; title: string; difficulty: number | null };
+          reason: string;
+        }>;
+        limitations: string[];
+      }
+    | undefined;
+  loading: boolean;
+  error?: string;
+  onUsePlan: (handoff: { title: string; problemIds: number[] }) => void;
+}) {
+  if (loading)
+    return (
+      <section className="h-48 animate-pulse rounded-3xl bg-white/[.04]" />
+    );
+  if (error)
+    return (
+      <section className="panel" role="alert">
+        <p className="eyebrow">TRAINING PLAN</p>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          A suggested training plan is unavailable right now. You can still
+          curate any session manually.
+        </p>
+      </section>
+    );
+  if (!plan || plan.problemRecommendationStatus === "insufficient_catalogue")
+    return (
+      <section className="panel">
+        <p className="eyebrow">TRAINING PLAN</p>
+        <h3 className="mt-2">Awaiting imported catalogue problems</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          A training plan is available only when real eligible catalogue
+          problems have been imported.
+        </p>
+      </section>
+    );
+  if (plan.status === "no_eligible_problems" || !plan.creationHandoff)
+    return (
+      <section className="panel">
+        <p className="eyebrow">TRAINING PLAN</p>
+        <h3 className="mt-2">No eligible plan right now</h3>
+        <p className="mt-3 text-sm leading-6 text-slate-400">
+          Terminal progress and active training or contest assignments remain
+          excluded from a new factual plan.
+        </p>
+      </section>
+    );
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">TRAINING PLAN</p>
+          <h3>Suggested focused session</h3>
+        </div>
+        <span className="tag">{plan.calculationVersion}</span>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-400">
+        This is an editable plan from recorded eligibility and timing evidence,
+        not a predicted performance outcome.
+      </p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">
+        {plan.expectedDuration.status === "estimated"
+          ? `${plan.expectedDuration.expectedMinutes} min expected (${plan.expectedDuration.lowerMinutes}–${plan.expectedDuration.upperMinutes} min typical range).`
+          : plan.expectedDuration.reason}
+      </p>
+      <ul className="mt-5 space-y-2">
+        {plan.recommendations.map(recommendation => (
+          <li
+            key={recommendation.problem.id}
+            className="flex items-start justify-between gap-4 rounded-xl border border-white/[.06] bg-white/[.02] p-3 text-sm"
+          >
+            <span className="min-w-0 text-slate-200">
+              {recommendation.problem.title}
+            </span>
+            <span className="max-w-96 text-right text-xs leading-5 text-slate-500">
+              {recommendation.reason}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs leading-5 text-slate-600">
+          The selected problems and title are prefilled in the editable session
+          form. Review or change them before creation.
+        </p>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => onUsePlan(plan.creationHandoff!)}
+        >
+          <Sparkles className="h-4 w-4" />
+          Use this training plan
+        </button>
+      </div>
+    </section>
   );
 }
 

@@ -71,6 +71,27 @@ vi.mock("@/lib/trpc", () => ({
             error: null,
           }),
         },
+        trainingRecommendations: {
+          useQuery: () => ({
+            data: {
+              calculationVersion: "training-recommendations-v1",
+              status: "no_eligible_problems",
+              problemRecommendationStatus: "insufficient_catalogue",
+              creationHandoff: null,
+              expectedDuration: {
+                status: "insufficient_evidence",
+                expectedMinutes: null,
+                lowerMinutes: null,
+                upperMinutes: null,
+                reason: "Need completed attempt timing evidence.",
+              },
+              recommendations: [],
+              limitations: [],
+            },
+            isLoading: false,
+            error: null,
+          }),
+        },
       },
       training: {
         adaptive: {

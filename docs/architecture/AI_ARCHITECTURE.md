@@ -190,3 +190,7 @@ The P1-1005 recommendation contract is specified in
 [AI_PROBLEM_RECOMMENDATIONS.md](./AI_PROBLEM_RECOMMENDATIONS.md). It reuses
 the deterministic, owner-scoped adaptive-training selection rules rather than
 a separate unbounded coach recommendation path.
+
+The P1-1006 editable training-plan contract is specified in
+[AI_TRAINING_RECOMMENDATIONS.md](./AI_TRAINING_RECOMMENDATIONS.md). It uses
+only eligible-problem and bounded completed-attempt timing evidence.
