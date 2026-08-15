@@ -60,6 +60,7 @@ import {
   buildActivityStatistics,
   earliestActivityStatisticsStart,
 } from "../domain/activityStatistics";
+import { buildActivityStreak } from "../domain/activityStreak";
 import {
   codeforcesProfileSyncJobName,
   dailyCodeforcesProfileSyncCron,
@@ -1320,6 +1321,25 @@ export const olimpRouter = router({
       return {
         periodBasis: "utc_calendar" as const,
         statistics: buildActivityStatistics(events, endsAt),
+      };
+    }),
+    activityStreak: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      const activityDay = sql<string>`DATE(${activityEvents.occurredAt})`.as(
+        "activityDay"
+      );
+      const activeDates = await db
+        .select({ date: activityDay })
+        .from(activityEvents)
+        .where(eq(activityEvents.userId, ctx.user.id))
+        .groupBy(activityDay)
+        .orderBy(asc(activityDay));
+      return {
+        periodBasis: "utc_calendar" as const,
+        streak: buildActivityStreak(
+          activeDates.map(entry => entry.date),
+          new Date()
+        ),
       };
     }),
   }),

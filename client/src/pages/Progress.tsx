@@ -14,6 +14,7 @@ export default function Progress() {
   const summary = trpc.olimp.analytics.summary.useQuery({ periodDays });
   const timeline = trpc.olimp.analytics.timeline.useQuery({ periodDays });
   const activityStatistics = trpc.olimp.analytics.activityStatistics.useQuery();
+  const activityStreak = trpc.olimp.analytics.activityStreak.useQuery();
   if (summary.error) return <ErrorState message={summary.error.message} />;
   if (summary.isLoading || !summary.data)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
@@ -71,6 +72,13 @@ export default function Progress() {
         <div className="h-36 animate-pulse rounded-3xl bg-white/[.04]" />
       ) : (
         <ActivityStatistics statistics={activityStatistics.data.statistics} />
+      )}
+      {activityStreak.error ? (
+        <ErrorState message={activityStreak.error.message} />
+      ) : activityStreak.isLoading || !activityStreak.data ? (
+        <div className="h-28 animate-pulse rounded-3xl bg-white/[.04]" />
+      ) : (
+        <ActivityStreak streak={activityStreak.data.streak} />
       )}
       {timeline.error ? (
         <ErrorState message={timeline.error.message} />
@@ -169,6 +177,39 @@ function ActivityStatistics({
         Active time is derived from server-bounded one-minute editor heartbeats.
         Events and solved updates are persisted workspace facts.
       </p>
+    </section>
+  );
+}
+
+function ActivityStreak({
+  streak,
+}: {
+  streak: {
+    currentDays: number;
+    activeToday: boolean;
+    lastActiveDate: string | null;
+  };
+}) {
+  return (
+    <section className="panel flex flex-col justify-between gap-4 md:flex-row md:items-center">
+      <div>
+        <p className="eyebrow">ACTIVE-DAY STREAK</p>
+        <h3 className="mt-2">{streak.currentDays} consecutive days</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          {streak.activeToday
+            ? "Today already has a persisted workspace activity fact."
+            : streak.currentDays
+              ? "Continue this streak with a persisted workspace activity fact today."
+              : "Start a new streak with a persisted workspace activity fact."}
+        </p>
+      </div>
+      <span className="tag">
+        {streak.activeToday
+          ? "active today"
+          : streak.lastActiveDate
+            ? `last active ${streak.lastActiveDate}`
+            : "no activity yet"}
+      </span>
     </section>
   );
 }

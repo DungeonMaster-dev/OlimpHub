@@ -117,7 +117,7 @@
 - [x] P1-606 Distinguish active/focused/idle time. The private workspace editor records focus and blur boundaries, server-bounded 60-second active heartbeats, and a single idle transition after two minutes without input; events contain only an owner-scoped problem reference, surface and server-defined interval metadata. Router and real Workspace timer regressions pass.
 - [x] P1-607 Implement activity timeline. The protected timeline API reads only owner-scoped persisted activity events, backfills daily zero-event buckets and retains explicit solved-status updates; Progress renders the factual daily chart and rating timeline. Domain, authorization and jsdom page regressions plus a visual route review pass.
 - [x] P1-608 Implement daily/weekly/monthly statistics. Protected calendar statistics derive today, current UTC week and current UTC month from owner-scoped persisted activity facts only, with server-bounded active-editor minutes and explicit solved updates. Domain, authorization and Progress UI regressions plus visual review pass.
-- [ ] P1-609 Implement streak calculation.
+- [x] P1-609 Implement streak calculation. The protected projection reads only distinct owner-scoped persisted UTC activity dates and calculates the current consecutive active-day streak without note, hint or solution content. Domain, router, authorization and Progress UI regressions plus a live route review pass.
 - [ ] P1-610 Add privacy controls and retention policy.
 
 # Phase 7 — Skill Engine

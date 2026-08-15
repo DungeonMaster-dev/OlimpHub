@@ -56,6 +56,20 @@ vi.mock("@/lib/trpc", () => ({
             error: null,
           }),
         },
+        activityStreak: {
+          useQuery: () => ({
+            data: {
+              periodBasis: "utc_calendar",
+              streak: {
+                currentDays: 3,
+                activeToday: true,
+                lastActiveDate: "2026-08-12",
+              },
+            },
+            isLoading: false,
+            error: null,
+          }),
+        },
       },
     },
   },
@@ -89,5 +103,9 @@ describe("Progress activity timeline", () => {
     ).toBeTruthy();
     expect(screen.getByText("3m")).toBeTruthy();
     expect(screen.getByText("4 events · 1 solved updates")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "3 consecutive days" })
+    ).toBeTruthy();
+    expect(screen.getByText("active today")).toBeTruthy();
   });
 });
