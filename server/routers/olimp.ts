@@ -9,6 +9,8 @@ import {
   activityEvents,
   codeforcesLinks,
   codeforcesRatingChanges,
+  contestItems,
+  contestSessions,
   externalSubmissions,
   idempotencyReceipts,
   problemHints,
@@ -1375,6 +1377,91 @@ export const olimpRouter = router({
           }
         }
         return { success: true };
+      }),
+  }),
+
+  contests: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      return db
+        .select()
+        .from(contestSessions)
+        .where(eq(contestSessions.userId, ctx.user.id))
+        .orderBy(desc(contestSessions.updatedAt));
+    }),
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string().trim().min(3).max(180),
+          problemIds: z.array(z.number().int().positive()).min(1).max(20),
+          requestId: z.string().uuid().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        return withMutationReceipt(
+          ctx.user.id,
+          "contest.create",
+          input.requestId,
+          async () => {
+            const available = await db
+              .select({ id: problems.id })
+              .from(problems)
+              .where(inArray(problems.id, input.problemIds));
+            if (available.length !== input.problemIds.length)
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "A selected contest problem is unavailable.",
+              });
+            const id = (
+              await db
+                .insert(contestSessions)
+                .values({
+                  userId: ctx.user.id,
+                  title: input.title,
+                  status: "draft",
+                })
+                .$returningId()
+            )[0]!.id;
+            await db.insert(contestItems).values(
+              input.problemIds.map((problemId, position) => ({
+                sessionId: id,
+                problemId,
+                position,
+              }))
+            );
+            return { id };
+          }
+        );
+      }),
+    detail: protectedProcedure
+      .input(z.object({ sessionId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const session = (
+          await db
+            .select()
+            .from(contestSessions)
+            .where(
+              and(
+                eq(contestSessions.id, input.sessionId),
+                eq(contestSessions.userId, ctx.user.id)
+              )
+            )
+            .limit(1)
+        )[0];
+        if (!session)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Contest session not found.",
+          });
+        const items = await db
+          .select({ item: contestItems, problem: problems })
+          .from(contestItems)
+          .innerJoin(problems, eq(contestItems.problemId, problems.id))
+          .where(eq(contestItems.sessionId, session.id))
+          .orderBy(asc(contestItems.position));
+        return { session, items };
       }),
   }),
 

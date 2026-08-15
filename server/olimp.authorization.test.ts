@@ -41,6 +41,13 @@ describe("OlimpHub protected workspace", () => {
     });
   });
 
+  it("rejects anonymous virtual-contest reads before exposing private sessions", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+    await expect(caller.olimp.contests.list()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
   it("rejects an anonymous rating and progress timeline request", async () => {
     const caller = appRouter.createCaller(anonymousContext());
     await expect(

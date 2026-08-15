@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Home from "@/pages/Home";
+import Contests from "@/pages/Contests";
 import NotFound from "@/pages/NotFound";
 import Problems from "@/pages/Problems";
 import Progress from "@/pages/Progress";
@@ -24,6 +25,7 @@ function Router() {
         <Route path="/problems/:id" component={Workspace} />
         <Route path="/training" component={Training} />
         <Route path="/training/:id" component={TrainingSession} />
+        <Route path="/contests" component={Contests} />
         <Route path="/submissions" component={Submissions} />
         <Route path="/skills" component={Skills} />
         <Route path="/progress" component={Progress} />

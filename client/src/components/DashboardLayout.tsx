@@ -34,6 +34,7 @@ import {
   PanelLeft,
   Settings,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -43,6 +44,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Today", path: "/" },
   { icon: Compass, label: "Explore", path: "/problems" },
   { icon: BookOpen, label: "Training", path: "/training" },
+  { icon: Trophy, label: "Contests", path: "/contests" },
   { icon: FileCheck2, label: "Verdicts", path: "/submissions" },
   { icon: Network, label: "Skill map", path: "/skills" },
   { icon: BarChart3, label: "Progress", path: "/progress" },
