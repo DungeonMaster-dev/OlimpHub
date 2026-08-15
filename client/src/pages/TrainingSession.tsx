@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { summarizeTrainingOutcomes } from "@shared/trainingAnalysis";
 import { ErrorState } from "./Home";
 
 export default function TrainingSession() {
@@ -36,6 +37,9 @@ export default function TrainingSession() {
   const completedCount = detail.data.items.filter(
     ({ item }) => item.status === "completed"
   ).length;
+  const analysis = summarizeTrainingOutcomes(
+    detail.data.items.map(({ item }) => item.status)
+  );
   const advance = async (status: "completed" | "skipped") => {
     if (!active) return;
     await updateItem.mutateAsync({ sessionId, itemId: active.item.id, status });
@@ -141,6 +145,22 @@ export default function TrainingSession() {
             Review your attempts from the dashboard or create the next focused
             set.
           </p>
+          <div className="mx-auto mt-6 grid max-w-lg grid-cols-3 gap-3 text-left">
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">COMPLETED</p>
+              <p className="mt-2 text-xl font-medium">{analysis.completed}</p>
+            </div>
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">SKIPPED</p>
+              <p className="mt-2 text-xl font-medium">{analysis.skipped}</p>
+            </div>
+            <div className="rounded-xl bg-white/[.04] p-3">
+              <p className="eyebrow">COMPLETION</p>
+              <p className="mt-2 text-xl font-medium">
+                {analysis.completionRate ?? "—"}%
+              </p>
+            </div>
+          </div>
         </section>
       )}
       <section className="panel">

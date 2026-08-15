@@ -11,3 +11,7 @@ Only the active item may become `completed` or `skipped`. Terminal items remain 
 ## Completion and privacy
 
 When every item is terminal, the server marks the session `completed` and records its completion timestamp. Lifecycle activity contains only owner-scoped identifiers and counts, never the session title, problem statement, notes, source code or hint content. Repeated unchanged mutations are deduplicated.
+
+## Post-training analysis
+
+The completed-session view summarizes only persisted item statuses: completed count, skipped count, unresolved count and the completed-item percentage. It does not infer a skill level, problem-solving quality, rating change or a hidden outcome from those facts.

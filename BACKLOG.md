@@ -139,7 +139,7 @@
 - [x] P1-804 Estimate expected solve time. `expected-solve-time-v1` uses up to five recent owner-scoped completed solved attempts, accepts only one-minute to four-hour elapsed durations, and reports a median with a 70–130% typical range after three qualifying facts. It otherwise returns no estimate. Domain, protected-router and Training UI regressions pass; the full quality suite has 112 tests.
 - [x] P1-805 Implement training session lifecycle. Owner-scoped creation persists one active item followed by queued items; protected detail reads, terminal completion, non-active resolution rejection and server-side next-item promotion are implemented. Only the protected terminal-advance path can activate queued work, preventing out-of-order promotion or multiple active items. Router/domain/UI regressions verify the lifecycle; the full quality suite has 116 tests.
 - [x] P1-806 Implement Surprise Me training. A deterministic UTC-day rotation selects up to four unique problems only from the already protected owner-scoped adaptive-eligible set. Surprise Me fills the ordinary editable session form and never writes a session automatically. Selector and Training UI regressions pass; the full quality suite has 119 tests.
-- [ ] P1-807 Implement post-training analysis.
+- [x] P1-807 Implement post-training analysis. Completed TrainingSession views now show only factual persisted item outcomes: completed, skipped and completion percentage. No skill, rating, quality or unrecorded result is inferred. Shared analysis and completed-session UI regressions pass; the full quality suite has 122 tests.
 - [ ] P1-808 Evaluate recommendation quality with test scenarios.
 
 # Phase 9 — Contest Engine

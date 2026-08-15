@@ -5,6 +5,7 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  completedSession: false,
   invalidate: vi.fn(),
   update: vi.fn(),
 }));
@@ -28,10 +29,18 @@ vi.mock("@/lib/trpc", () => ({
             isLoading: false,
             error: null,
             data: {
-              session: { id: 701, title: "Graph practice", status: "active" },
+              session: {
+                id: 701,
+                title: "Graph practice",
+                status: mocks.completedSession ? "completed" : "active",
+              },
               items: [
                 {
-                  item: { id: 11, position: 0, status: "active" },
+                  item: {
+                    id: 11,
+                    position: 0,
+                    status: mocks.completedSession ? "completed" : "active",
+                  },
                   problem: {
                     id: 8,
                     title: "Traversal",
@@ -42,7 +51,11 @@ vi.mock("@/lib/trpc", () => ({
                   },
                 },
                 {
-                  item: { id: 12, position: 1, status: "queued" },
+                  item: {
+                    id: 12,
+                    position: 1,
+                    status: mocks.completedSession ? "skipped" : "queued",
+                  },
                   problem: {
                     id: 9,
                     title: "Paths",
@@ -76,6 +89,7 @@ import TrainingSession from "../client/src/pages/TrainingSession";
 describe("training session lifecycle UI", () => {
   afterEach(() => {
     cleanup();
+    mocks.completedSession = false;
     mocks.update.mockReset();
     mocks.invalidate.mockReset();
   });
@@ -93,5 +107,15 @@ describe("training session lifecycle UI", () => {
     );
     expect(mocks.update).toHaveBeenCalledTimes(1);
     expect(mocks.invalidate).toHaveBeenCalledWith({ sessionId: 701 });
+  });
+
+  it("renders a factual completed-session analysis from persisted item statuses", () => {
+    mocks.completedSession = true;
+    const screen = render(<TrainingSession />);
+
+    expect(screen.getByText("SESSION COMPLETE")).toBeTruthy();
+    expect(screen.getByText("COMPLETED")).toBeTruthy();
+    expect(screen.getByText("SKIPPED")).toBeTruthy();
+    expect(screen.getByText("50%")).toBeTruthy();
   });
 });

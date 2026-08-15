@@ -84,3 +84,4 @@
 - [x] Implement P1-804 conservative expected solve-time estimates from verified owner-scoped completed attempts, with an explicit insufficient-evidence state.
 - [x] Complete P1-805 queued-to-active server guard: permit only the first queued item when no active item exists, and regress out-of-order activation/multiple-active states.
 - [x] Implement P1-806 Surprise Me training with deterministic owner-scoped eligible-problem selection and an explicit, editable session-creation handoff.
+- [x] Implement P1-807 factual post-training analysis from owner-scoped session item outcomes, without inferring skills or results absent from persisted evidence.
