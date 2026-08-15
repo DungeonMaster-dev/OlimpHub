@@ -18,6 +18,9 @@ export default function Contests() {
       utils.olimp.contests.list.invalidate();
     },
   });
+  const start = trpc.olimp.contests.start.useMutation({
+    onSuccess: () => utils.olimp.contests.list.invalidate(),
+  });
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -95,16 +98,34 @@ export default function Contests() {
           {contests.data?.length ? (
             <div className="divide-y divide-white/[.06]">
               {contests.data.map(contest => (
-                <Link
+                <div
                   key={contest.id}
-                  href={`/contests/${contest.id}`}
-                  className="block py-4"
+                  className="flex items-center justify-between gap-4 py-4"
                 >
-                  <p className="text-sm text-slate-200">{contest.title}</p>
-                  <p className="mt-1 text-xs capitalize text-slate-500">
-                    {contest.status}
-                  </p>
-                </Link>
+                  <div>
+                    <p className="text-sm text-slate-200">{contest.title}</p>
+                    <p className="mt-1 text-xs capitalize text-slate-500">
+                      {contest.status}
+                    </p>
+                  </div>
+                  {contest.status === "draft" ? (
+                    <button
+                      type="button"
+                      className="quiet-button text-xs"
+                      disabled={start.isPending}
+                      onClick={() => start.mutate({ sessionId: contest.id })}
+                    >
+                      Start contest
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/contests/${contest.id}`}
+                      className="quiet-button text-xs"
+                    >
+                      Open contest
+                    </Link>
+                  )}
+                </div>
               ))}
             </div>
           ) : (

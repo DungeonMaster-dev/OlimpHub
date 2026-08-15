@@ -144,7 +144,7 @@
 
 # Phase 9 — Contest Engine
 
-- [ ] P1-901 Implement virtual contest lifecycle.
+- [x] P1-901 Implement virtual contest lifecycle.
 - [ ] P1-902 Implement contest timer.
 - [ ] P1-903 Implement scoring and penalty systems.
 - [ ] P1-904 Implement contest problem selection.

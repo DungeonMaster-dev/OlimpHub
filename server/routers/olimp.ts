@@ -1434,6 +1434,171 @@ export const olimpRouter = router({
           }
         );
       }),
+    start: protectedProcedure
+      .input(z.object({ sessionId: z.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const session = (
+          await db
+            .select()
+            .from(contestSessions)
+            .where(
+              and(
+                eq(contestSessions.id, input.sessionId),
+                eq(contestSessions.userId, ctx.user.id)
+              )
+            )
+            .limit(1)
+        )[0];
+        if (!session)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Contest session not found.",
+          });
+        if (session.status !== "draft")
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Only a draft contest can be started.",
+          });
+        await db
+          .update(contestSessions)
+          .set({ status: "active", startedAt: new Date() })
+          .where(eq(contestSessions.id, session.id));
+        const firstItem = (
+          await db
+            .select({ id: contestItems.id })
+            .from(contestItems)
+            .where(
+              and(
+                eq(contestItems.sessionId, session.id),
+                eq(contestItems.status, "queued")
+              )
+            )
+            .orderBy(asc(contestItems.position))
+            .limit(1)
+        )[0];
+        if (!firstItem)
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A contest requires at least one queued problem.",
+          });
+        await db
+          .update(contestItems)
+          .set({ status: "active" })
+          .where(eq(contestItems.id, firstItem.id));
+        await writeActivity({
+          userId: ctx.user.id,
+          eventType: "contest_started",
+          metadata: { sessionId: session.id, itemId: firstItem.id },
+        });
+        return { success: true };
+      }),
+    updateItem: protectedProcedure
+      .input(
+        z.object({
+          sessionId: z.number().int().positive(),
+          itemId: z.number().int().positive(),
+          status: z.enum(["completed", "skipped"]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const session = (
+          await db
+            .select()
+            .from(contestSessions)
+            .where(
+              and(
+                eq(contestSessions.id, input.sessionId),
+                eq(contestSessions.userId, ctx.user.id)
+              )
+            )
+            .limit(1)
+        )[0];
+        if (!session)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Contest session not found.",
+          });
+        if (session.status !== "active")
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Contest session is not active.",
+          });
+        const item = (
+          await db
+            .select()
+            .from(contestItems)
+            .where(
+              and(
+                eq(contestItems.id, input.itemId),
+                eq(contestItems.sessionId, session.id)
+              )
+            )
+            .limit(1)
+        )[0];
+        if (!item)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Contest item not found.",
+          });
+        if (item.status !== "active")
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Only the active contest item can be resolved.",
+          });
+        const nextStatus = nextTrainingItemStatus(item.status, input.status);
+        if (nextStatus === item.status)
+          return { success: true, deduplicated: true };
+        await db
+          .update(contestItems)
+          .set({
+            status: nextStatus,
+            completedAt: nextStatus === "completed" ? new Date() : null,
+          })
+          .where(eq(contestItems.id, item.id));
+        if (nextStatus === "completed") {
+          await writeActivity({
+            userId: ctx.user.id,
+            problemId: item.problemId,
+            eventType: "contest_item_completed",
+            metadata: { sessionId: session.id, itemId: item.id },
+          });
+        }
+        const sessionItems = await db
+          .select({
+            id: contestItems.id,
+            status: contestItems.status,
+            position: contestItems.position,
+          })
+          .from(contestItems)
+          .where(eq(contestItems.sessionId, session.id))
+          .orderBy(asc(contestItems.position));
+        if (
+          isTrainingSessionComplete(sessionItems.map(entry => entry.status))
+        ) {
+          await db
+            .update(contestSessions)
+            .set({ status: "completed", completedAt: new Date() })
+            .where(eq(contestSessions.id, session.id));
+          await writeActivity({
+            userId: ctx.user.id,
+            eventType: "contest_completed",
+            metadata: { sessionId: session.id, itemCount: sessionItems.length },
+          });
+        } else {
+          const nextItem = sessionItems.find(
+            entry => entry.status === "queued"
+          );
+          if (nextItem) {
+            await db
+              .update(contestItems)
+              .set({ status: "active" })
+              .where(eq(contestItems.id, nextItem.id));
+          }
+        }
+        return { success: true };
+      }),
     detail: protectedProcedure
       .input(z.object({ sessionId: z.number().int().positive() }))
       .query(async ({ ctx, input }) => {
