@@ -49,3 +49,7 @@
 - [x] Audit P1-404 deterministic mapping from Codeforces external problem keys to canonical problem records without destructive merges.
 - [x] Implement P1-405 daily Codeforces profile synchronization with an idempotent scheduled callback and documented production activation.
 - [x] Implement P1-406 owner-scoped rating and progress timeline from imported Codeforces and private workspace activity data.
+- [x] Audit and complete P1-407 recoverable Codeforces API failure, rate-limit and partial-sync handling with user-visible outcomes.
+- [x] Add P1-407 router regression proving provider failure preserves the durable cursor while recording failed sync state.
+- [x] Add P1-407 local-cooldown regression proving durable rate-limited state preserves the existing cursor.
+- [x] Verify documented user-visible outcomes for retryable failure and rate-limit states before final P1-407 completion.

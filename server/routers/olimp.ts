@@ -52,6 +52,7 @@ import {
 } from "../domain/canonicalization";
 import { summarizeSourceHealth } from "../domain/sourceHealth";
 import { buildDailyProgressTimeline } from "../domain/timeline";
+import { classifySourceSyncFailure } from "../domain/syncOutcome";
 import {
   codeforcesProfileSyncJobName,
   dailyCodeforcesProfileSyncCron,
@@ -266,9 +267,27 @@ async function beginCodeforcesSync(scopeKey: string) {
   )[0];
   const now = new Date();
   if (!canBeginCodeforcesSync(existing?.lastStartedAt, now)) {
+    const message =
+      "Please wait one minute before repeating this Codeforces sync.";
+    await db
+      .insert(sourceSyncStates)
+      .values({
+        sourceId: "codeforces",
+        scopeKey,
+        status: "rate_limited",
+        lastFinishedAt: now,
+        lastError: message,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          status: "rate_limited",
+          lastFinishedAt: now,
+          lastError: message,
+        },
+      });
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
-      message: "Please wait one minute before repeating this Codeforces sync.",
+      message,
     });
   }
   await db
@@ -298,19 +317,14 @@ async function finishCodeforcesSync(
   error?: unknown,
   cursor?: string
 ) {
-  const failed =
-    error instanceof Error
-      ? error.message.slice(0, 500)
-      : error
-        ? "Unknown synchronization failure."
-        : null;
+  const failure = error ? classifySourceSyncFailure(error) : null;
   await db
     .update(sourceSyncStates)
     .set({
-      status: failed ? "failed" : "succeeded",
+      status: failure?.status ?? "succeeded",
       lastFinishedAt: new Date(),
-      lastError: failed,
-      ...(failed || cursor === undefined ? {} : { cursor }),
+      lastError: failure?.message ?? null,
+      ...(failure || cursor === undefined ? {} : { cursor }),
     })
     .where(
       and(

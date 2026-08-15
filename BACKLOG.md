@@ -91,7 +91,7 @@
 - [x] P1-404 Map external problems to canonical problems. Codeforces submission import resolves `problemId` only from a source-scoped stable external key; unknown keys remain unmapped rather than being guessed from title, URL or tags. Domain regression and final quality gates pass.
 - [x] P1-405 Implement background profile synchronization. Daily 03:00 UTC opt-in Heartbeat lifecycle, task-UID-bound callback, durable per-link state and retry-safe callback behavior are implemented and published. A user enables or pauses their own job explicitly from Settings.
 - [x] P1-406 Implement rating/progress timeline. Owner-scoped timeline API and Progress UI render imported Codeforces rating changes plus daily persisted workspace activity without synthetic data; timeline domain/authorization regressions, visual review and final quality gates pass.
-- [ ] P1-407 Handle API failures, rate limits and partial synchronization.
+- [x] P1-407 Handle API failures, rate limits and partial synchronization. Durable sync state distinguishes `rate_limited` from `failed`; failures preserve cursor and retry through overlap pagination while user-facing mutations return retryable errors. Router regressions prove provider failure and local cooldown preserve the prior cursor while storing the correct durable state; final quality gates pass.
 - [ ] P1-408 Add synchronization tests.
 
 # Phase 5 — Code Execution
