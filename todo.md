@@ -53,3 +53,4 @@
 - [x] Add P1-407 router regression proving provider failure preserves the durable cursor while recording failed sync state.
 - [x] Add P1-407 local-cooldown regression proving durable rate-limited state preserves the existing cursor.
 - [x] Verify documented user-visible outcomes for retryable failure and rate-limit states before final P1-407 completion.
+- [x] Complete P1-408 system-level synchronization test matrix for handle linking, rating import, submissions, failure recovery and daily scheduled callback.

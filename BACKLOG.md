@@ -92,7 +92,7 @@
 - [x] P1-405 Implement background profile synchronization. Daily 03:00 UTC opt-in Heartbeat lifecycle, task-UID-bound callback, durable per-link state and retry-safe callback behavior are implemented and published. A user enables or pauses their own job explicitly from Settings.
 - [x] P1-406 Implement rating/progress timeline. Owner-scoped timeline API and Progress UI render imported Codeforces rating changes plus daily persisted workspace activity without synthetic data; timeline domain/authorization regressions, visual review and final quality gates pass.
 - [x] P1-407 Handle API failures, rate limits and partial synchronization. Durable sync state distinguishes `rate_limited` from `failed`; failures preserve cursor and retry through overlap pagination while user-facing mutations return retryable errors. Router regressions prove provider failure and local cooldown preserve the prior cursor while storing the correct durable state; final quality gates pass.
-- [ ] P1-408 Add synchronization tests.
+- [x] P1-408 Add synchronization tests. System-level coverage includes handle linking, rating upsert, multi-page submissions, failure/cursor preservation, cron-only callback and daily task lifecycle; 64 tests pass with final quality gates.
 
 # Phase 5 — Code Execution
 

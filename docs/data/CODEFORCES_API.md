@@ -89,6 +89,8 @@ P1-405 добавляет opt-in ежедневную profile sync в 03:00 UTC.
 
 P1-407 различает состояние `rate_limited` и обычный `failed` в durable source sync state. Локальный one-minute cooldown и ответ provider с call limit записывают rate-limited state, а cursor сохраняет прежнее значение. Временная ошибка также не продвигает cursor, поэтому следующая синхронизация повторно читает overlap и не делает частичный импорт выглядящим успешным. Settings показывает retryable error текущему пользователю, а administrator source-health view получает безопасную агрегированную категорию без raw provider text.
 
+P1-408 фиксирует system-level test matrix Codeforces boundary: public profile linking проверяется для канонического handle, несуществующего profile, conflict и временной ошибки; rating import — для normalization, persisted upsert и retryable failure; submissions — для multi-page cursor, source-code exclusion, provider failure и local cooldown с сохранением cursor; ежедневный callback — для cron-only access, task UID, error retry response и create/pause lifecycle. Эти tests используют изолированные DB/provider seams и не обращаются к live user account или public API во время CI.
+
 ### Минимальный контракт адаптера
 
 P1-301 реализует базовый `ProblemSourceAdapter` в `server/sources/types.ts` и `CodeforcesAdapter` в `server/sources/codeforces.ts`. В текущем контракте доступны `fetchProblemSnapshot` и `fetchSubmissionsPage`; обе операции возвращают типизированный результат `success | retryable_failure | permanent_failure` с точным временем наблюдения. Router использует нормализованные данные адаптера, а не собственный парсер Codeforces. Операции контестов, публичного профиля и рейтинга остаются отдельными последующими расширениями интерфейса.
