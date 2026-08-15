@@ -65,3 +65,4 @@
 - [ ] Complete P1-605 contest-session activity tracking after P1-208 introduces a real contest lifecycle.
 - [x] Implement P1-606 privacy-safe active/focused/idle time tracking with bounded workspace editor heartbeats.
 - [x] Audit and complete P1-607 real persisted owner-scoped activity timeline API and Progress UI journey.
+- [x] Implement P1-608 factual daily/weekly/monthly owner-scoped activity statistics and Progress display.

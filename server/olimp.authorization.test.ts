@@ -41,6 +41,13 @@ describe("OlimpHub protected workspace", () => {
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
+  it("rejects anonymous activity statistics before reading private events", async () => {
+    const caller = appRouter.createCaller(anonymousContext());
+    await expect(
+      caller.olimp.analytics.activityStatistics()
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+  });
+
   it("rejects anonymous canonicalization changes before reading catalogue data", async () => {
     const caller = appRouter.createCaller(anonymousContext());
     await expect(

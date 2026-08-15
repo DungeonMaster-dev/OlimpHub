@@ -13,6 +13,7 @@ export default function Progress() {
   const [periodDays, setPeriodDays] = useState<7 | 30 | 90>(30);
   const summary = trpc.olimp.analytics.summary.useQuery({ periodDays });
   const timeline = trpc.olimp.analytics.timeline.useQuery({ periodDays });
+  const activityStatistics = trpc.olimp.analytics.activityStatistics.useQuery();
   if (summary.error) return <ErrorState message={summary.error.message} />;
   if (summary.isLoading || !summary.data)
     return <div className="h-96 animate-pulse rounded-3xl bg-white/[.04]" />;
@@ -64,6 +65,13 @@ export default function Progress() {
           icon={Info}
         />
       </section>
+      {activityStatistics.error ? (
+        <ErrorState message={activityStatistics.error.message} />
+      ) : activityStatistics.isLoading || !activityStatistics.data ? (
+        <div className="h-36 animate-pulse rounded-3xl bg-white/[.04]" />
+      ) : (
+        <ActivityStatistics statistics={activityStatistics.data.statistics} />
+      )}
       {timeline.error ? (
         <ErrorState message={timeline.error.message} />
       ) : timeline.isLoading || !timeline.data ? (
@@ -111,6 +119,57 @@ export default function Progress() {
         </p>
       </section>
     </div>
+  );
+}
+
+function ActivityStatistics({
+  statistics,
+}: {
+  statistics: {
+    day: { eventCount: number; activeMinutes: number; solvedUpdates: number };
+    week: { eventCount: number; activeMinutes: number; solvedUpdates: number };
+    month: { eventCount: number; activeMinutes: number; solvedUpdates: number };
+  };
+}) {
+  const periods = [
+    { label: "Today", value: statistics.day },
+    { label: "This week", value: statistics.week },
+    { label: "This month", value: statistics.month },
+  ];
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">FACTUAL RHYTHM</p>
+          <h3>Calendar statistics</h3>
+        </div>
+        <span className="tag">UTC calendar</span>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        {periods.map(period => (
+          <div
+            key={period.label}
+            className="rounded-xl border border-white/[.06] bg-white/[.02] p-4"
+          >
+            <p className="text-xs uppercase tracking-[.16em] text-slate-500">
+              {period.label}
+            </p>
+            <p className="mt-3 text-2xl font-semibold text-slate-100">
+              {period.value.activeMinutes}m
+            </p>
+            <p className="mt-1 text-xs text-slate-500">active editor time</p>
+            <p className="mt-3 text-sm text-slate-300">
+              {period.value.eventCount} events · {period.value.solvedUpdates}{" "}
+              solved updates
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs leading-5 text-slate-500">
+        Active time is derived from server-bounded one-minute editor heartbeats.
+        Events and solved updates are persisted workspace facts.
+      </p>
+    </section>
   );
 }
 

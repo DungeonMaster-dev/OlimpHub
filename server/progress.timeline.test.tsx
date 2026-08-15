@@ -42,6 +42,20 @@ vi.mock("@/lib/trpc", () => ({
         timeline: {
           useQuery: () => ({ data: timeline, isLoading: false, error: null }),
         },
+        activityStatistics: {
+          useQuery: () => ({
+            data: {
+              periodBasis: "utc_calendar",
+              statistics: {
+                day: { eventCount: 1, activeMinutes: 1, solvedUpdates: 0 },
+                week: { eventCount: 4, activeMinutes: 3, solvedUpdates: 1 },
+                month: { eventCount: 9, activeMinutes: 6, solvedUpdates: 2 },
+              },
+            },
+            isLoading: false,
+            error: null,
+          }),
+        },
       },
     },
   },
@@ -70,5 +84,10 @@ describe("Progress activity timeline", () => {
       screen.getByTitle("2026-08-11: 3 events, 1 solved updates")
     ).toBeTruthy();
     expect(screen.getByText("1 solved updates")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Calendar statistics" })
+    ).toBeTruthy();
+    expect(screen.getByText("3m")).toBeTruthy();
+    expect(screen.getByText("4 events · 1 solved updates")).toBeTruthy();
   });
 });

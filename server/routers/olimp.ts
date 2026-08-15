@@ -57,6 +57,10 @@ import { classifySourceSyncFailure } from "../domain/syncOutcome";
 import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
 import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
+  buildActivityStatistics,
+  earliestActivityStatisticsStart,
+} from "../domain/activityStatistics";
+import {
   codeforcesProfileSyncJobName,
   dailyCodeforcesProfileSyncCron,
 } from "../domain/scheduling";
@@ -1297,6 +1301,27 @@ export const olimpRouter = router({
           }),
         };
       }),
+    activityStatistics: protectedProcedure.query(async ({ ctx }) => {
+      const db = await requireDb();
+      const endsAt = new Date();
+      const events = await db
+        .select()
+        .from(activityEvents)
+        .where(
+          and(
+            eq(activityEvents.userId, ctx.user.id),
+            gte(
+              activityEvents.occurredAt,
+              earliestActivityStatisticsStart(endsAt)
+            )
+          )
+        )
+        .orderBy(asc(activityEvents.occurredAt));
+      return {
+        periodBasis: "utc_calendar" as const,
+        statistics: buildActivityStatistics(events, endsAt),
+      };
+    }),
   }),
 
   settings: router({
