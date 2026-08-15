@@ -45,6 +45,7 @@ describe("virtual contest lifecycle", () => {
           };
           return {
             where: vi.fn(() => result),
+            orderBy: vi.fn(() => orderedResult),
             innerJoin: vi.fn(() => ({ where: vi.fn(() => result) })),
           };
         }),
@@ -101,6 +102,38 @@ describe("virtual contest lifecycle", () => {
         ],
       ])
     );
+  });
+
+  it("returns deterministic owner-scoped contest suggestions while excluding terminal and active-contest problems", async () => {
+    mocks.selectResults = [
+      [
+        { id: 1, difficulty: 800, title: "Solved" },
+        { id: 2, difficulty: 1500, title: "Paused" },
+        { id: 3, difficulty: 900, title: "Active contest" },
+        { id: 4, difficulty: 1000, title: "Catalogue" },
+      ],
+      [
+        { problemId: 1, status: "solved" },
+        { problemId: 2, status: "paused" },
+      ],
+      [{ problemId: 3 }],
+    ];
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.contests.suggest({ count: 4 })
+    ).resolves.toMatchObject({
+      calculationVersion: "contest-selection-v1",
+      recommendations: [
+        {
+          problem: { id: 2, title: "Paused" },
+          reasonCode: "unfinished_work",
+        },
+        {
+          problem: { id: 4, title: "Catalogue" },
+          reasonCode: "catalogue_fallback",
+        },
+      ],
+    });
   });
 
   it("starts only an owned draft and server-activates its first queued problem", async () => {

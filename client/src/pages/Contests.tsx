@@ -1,5 +1,5 @@
 import { Plus, Trophy } from "lucide-react";
-import { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 
@@ -8,10 +8,12 @@ export default function Contests() {
   const [selected, setSelected] = useState<number[]>([]);
   const [durationMinutes, setDurationMinutes] = useState(120);
   const utils = trpc.useUtils();
+  const suggestionInput = useMemo(() => ({ count: 4 }), []);
   const catalogue = trpc.olimp.catalogue.list.useQuery({
     page: 0,
     pageSize: 8,
   });
+  const suggestions = trpc.olimp.contests.suggest.useQuery(suggestionInput);
   const contests = trpc.olimp.contests.list.useQuery();
   const create = trpc.olimp.contests.create.useMutation({
     onSuccess: () => {
@@ -65,6 +67,56 @@ export default function Contests() {
               <option value={240}>240 minutes</option>
             </select>
           </label>
+          <div className="mt-5 rounded-2xl border border-white/[.06] bg-white/[.02] p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="eyebrow">SUGGESTED START</p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Uses only your saved progress and avoids terminal work and
+                  problems already in an active contest.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="quiet-button shrink-0 text-xs"
+                disabled={!suggestions.data?.recommendations.length}
+                onClick={() =>
+                  setSelected(
+                    suggestions.data?.recommendations.map(
+                      recommendation => recommendation.problem.id
+                    ) ?? []
+                  )
+                }
+              >
+                Use suggested set
+              </button>
+            </div>
+            {suggestions.data?.recommendations.length ? (
+              <div className="mt-3 divide-y divide-white/[.06]">
+                {suggestions.data.recommendations.map(recommendation => (
+                  <div
+                    className="flex items-center justify-between gap-3 py-2"
+                    key={recommendation.problem.id}
+                  >
+                    <p className="min-w-0 truncate text-xs text-slate-300">
+                      {recommendation.problem.title}
+                    </p>
+                    <span className="max-w-48 text-right text-[11px] leading-4 text-slate-500">
+                      {recommendation.reason}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : suggestions.isLoading ? (
+              <p className="mt-3 text-xs text-slate-500">
+                Looking for eligible catalogue problems…
+              </p>
+            ) : (
+              <p className="mt-3 text-xs text-slate-500">
+                No eligible suggestion is available from current evidence.
+              </p>
+            )}
+          </div>
           <div className="mt-5 space-y-2">
             {catalogue.data?.items.map(({ problem }) => (
               <label

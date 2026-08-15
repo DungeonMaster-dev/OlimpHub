@@ -71,6 +71,10 @@ import {
 } from "../domain/contestTimer";
 import { summarizeContestScore } from "../domain/contestScoring";
 import {
+  contestSelectionCalculationVersion,
+  selectContestProblems,
+} from "../domain/contestSelection";
+import {
   adaptiveTrainingCalculationVersion,
   calculateDifficultyProgression,
   calculateExpectedSolveTime,
@@ -1421,6 +1425,72 @@ export const olimpRouter = router({
   }),
 
   contests: router({
+    suggest: protectedProcedure
+      .input(z.object({ count: z.number().int().min(1).max(8).default(4) }))
+      .query(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const candidates = await db
+          .select()
+          .from(problems)
+          .orderBy(asc(problems.difficulty), asc(problems.id))
+          .limit(120);
+        if (!candidates.length)
+          return {
+            calculationVersion: contestSelectionCalculationVersion,
+            recommendations: [],
+          };
+        const candidateIds = candidates.map(problem => problem.id);
+        const [progressRows, activeContestRows] = await Promise.all([
+          db
+            .select()
+            .from(userProblemProgress)
+            .where(
+              and(
+                eq(userProblemProgress.userId, ctx.user.id),
+                inArray(userProblemProgress.problemId, candidateIds)
+              )
+            ),
+          db
+            .select({ problemId: contestItems.problemId })
+            .from(contestItems)
+            .innerJoin(
+              contestSessions,
+              eq(contestItems.sessionId, contestSessions.id)
+            )
+            .where(
+              and(
+                eq(contestSessions.userId, ctx.user.id),
+                eq(contestSessions.status, "active"),
+                inArray(contestItems.problemId, candidateIds)
+              )
+            ),
+        ]);
+        const progressByProblem = new Map(
+          progressRows.map(progress => [progress.problemId, progress.status])
+        );
+        const activeContestProblemIds = new Set(
+          activeContestRows.map(item => item.problemId)
+        );
+        const selected = selectContestProblems(
+          candidates.map(problem => ({
+            problemId: problem.id,
+            difficulty: problem.difficulty,
+            progressStatus: progressByProblem.get(problem.id) ?? null,
+            isInActiveContest: activeContestProblemIds.has(problem.id),
+          })),
+          input.count
+        );
+        const problemById = new Map(
+          candidates.map(problem => [problem.id, problem])
+        );
+        return {
+          calculationVersion: contestSelectionCalculationVersion,
+          recommendations: selected.map(recommendation => ({
+            problem: problemById.get(recommendation.problemId)!,
+            ...recommendation,
+          })),
+        };
+      }),
     list: protectedProcedure.query(async ({ ctx }) => {
       const db = await requireDb();
       const sessions = await db
