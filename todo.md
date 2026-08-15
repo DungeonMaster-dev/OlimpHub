@@ -62,7 +62,7 @@
 - [x] Implement P1-603 privacy-safe submission/verdict summary activity during Codeforces synchronization.
 - [x] Complete P1-604 privacy-safe progressive hint interaction tracking without storing hint content in activity facts.
 - [x] Implement P1-605 training-session portion: owner-scoped item/session completion activity with compact metadata and regressions.
-- [ ] Complete P1-605 contest-session activity tracking after P1-208 introduces a real contest lifecycle.
+- [x] Complete P1-605 contest-session activity tracking after P1-208 introduces a real contest lifecycle.
 - [x] Implement P1-606 privacy-safe active/focused/idle time tracking with bounded workspace editor heartbeats.
 - [x] Audit and complete P1-607 real persisted owner-scoped activity timeline API and Progress UI journey.
 - [x] Implement P1-608 factual daily/weekly/monthly owner-scoped activity statistics and Progress display.

@@ -189,6 +189,38 @@ describe("virtual contest lifecycle", () => {
     expect(mocks.writes).toEqual([]);
   });
 
+  it("records a compact owner-scoped skipped-item fact without contest title or problem content", async () => {
+    mocks.selectResults = [
+      [{ id: 7, userId: 1, status: "active", title: "Private contest" }],
+      [{ id: 12, sessionId: 7, problemId: 9, status: "active" }],
+      [
+        { id: 12, position: 0, status: "skipped" },
+        { id: 13, position: 1, status: "queued" },
+      ],
+    ];
+
+    await expect(
+      appRouter.createCaller(userContext()).olimp.contests.updateItem({
+        sessionId: 7,
+        itemId: 12,
+        status: "skipped",
+      })
+    ).resolves.toEqual({ success: true });
+
+    expect(mocks.writes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: 1,
+          problemId: 9,
+          eventType: "contest_item_skipped",
+          metadata: { sessionId: 7, itemId: 12 },
+        }),
+      ])
+    );
+    expect(JSON.stringify(mocks.writes)).not.toContain("Private contest");
+    expect(JSON.stringify(mocks.writes)).not.toContain("problem content");
+  });
+
   it("records only compact factual completion events when every item is terminal", async () => {
     mocks.selectResults = [
       [{ id: 7, userId: 1, status: "active" }],

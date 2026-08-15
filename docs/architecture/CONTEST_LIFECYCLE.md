@@ -10,4 +10,4 @@ A contest session begins as `draft`, may become `active`, and finishes as `compl
 
 ## Ownership and evidence boundaries
 
-All list, detail and mutation operations scope the contest session to the authenticated owner. P1-901 does not calculate elapsed time, a score, penalty, rank or a contest performance conclusion. Those facts require the later timer, scoring and analysis tasks. Activity tracking records only compact owner-scoped lifecycle facts after a real contest session exists: contest start, explicit item completion and session completion.
+All list, detail and mutation operations scope the contest session to the authenticated owner. P1-901 does not calculate elapsed time, a score, penalty, rank or a contest performance conclusion. Those facts require the later timer, scoring and analysis tasks. Activity tracking records only compact owner-scoped lifecycle facts after a real contest session exists: contest start, explicit item completion or skip, and session completion.

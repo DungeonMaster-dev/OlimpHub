@@ -1564,6 +1564,13 @@ export const olimpRouter = router({
             eventType: "contest_item_completed",
             metadata: { sessionId: session.id, itemId: item.id },
           });
+        } else {
+          await writeActivity({
+            userId: ctx.user.id,
+            problemId: item.problemId,
+            eventType: "contest_item_skipped",
+            metadata: { sessionId: session.id, itemId: item.id },
+          });
         }
         const sessionItems = await db
           .select({
