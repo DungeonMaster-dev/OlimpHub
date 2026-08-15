@@ -232,4 +232,26 @@ describe("manual training creation UI", () => {
       })
     );
   });
+
+  it("applies a deterministic Surprise Me subset to the editable form without creating a session", () => {
+    mocks.adaptiveRecommendations = [
+      {
+        problem: { id: 8, title: "Two Sum", difficulty: 800 },
+        reason: "Included from the available catalogue.",
+      },
+      {
+        problem: { id: 13, title: "Graph traversal", difficulty: 1200 },
+        reason: "Included from the available catalogue.",
+      },
+    ];
+    const screen = render(<Training />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Surprise me" }));
+
+    expect(screen.getByDisplayValue("Surprise practice")).toBeTruthy();
+    expect(mocks.create).not.toHaveBeenCalled();
+    for (const checkbox of screen.getAllByRole("checkbox")) {
+      expect((checkbox as HTMLInputElement).checked).toBe(true);
+    }
+  });
 });

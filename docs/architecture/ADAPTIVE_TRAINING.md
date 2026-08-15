@@ -30,6 +30,10 @@ When fewer than three verified solved difficulties exist, the API returns `insuf
 
 With fewer than three bounded completed attempts, the endpoint returns `insufficient_evidence` and no duration estimate. The Training UI presents that limitation rather than inventing a forecast.
 
+## Surprise Me
+
+Surprise Me deterministically rotates a maximum four-problem subset from the already protected, owner-scoped adaptive-eligible set. Its stable UTC day key and problem identifiers produce a repeatable daily ordering rather than using an untracked random source. The control fills the ordinary editable training form with the selected subset and a title; it never writes a session automatically.
+
 ## Privacy and future scope
 
 No recommendation reason includes note text, hint content, source-code content or a copied problem statement. Skill-weakness targeting and recent-exposure balancing remain separate backlog work so the selector never overstates thin evidence.

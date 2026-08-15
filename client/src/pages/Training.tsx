@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { Link } from "wouter";
 import { CheckCircle2, ListPlus, Play, Plus } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { selectDailySurpriseProblemIds } from "@shared/trainingSurprise";
 import { Empty, ErrorState } from "./Home";
 
 export default function Training() {
   const sessions = trpc.olimp.training.list.useQuery();
-  const adaptive = trpc.olimp.training.adaptive.useQuery({ count: 4 });
+  const adaptive = trpc.olimp.training.adaptive.useQuery({ count: 6 });
   const catalogue = trpc.olimp.catalogue.list.useQuery({
     page: 0,
     pageSize: 8,
@@ -76,6 +77,24 @@ export default function Training() {
                   }}
                 >
                   Use suggestions
+                </button>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-indigo-200 hover:text-white"
+                  onClick={() => {
+                    const dayKey = new Date().toISOString().slice(0, 10);
+                    setTitle("Surprise practice");
+                    setSelected(
+                      selectDailySurpriseProblemIds(
+                        adaptive.data!.recommendations.map(
+                          recommendation => recommendation.problem.id
+                        ),
+                        dayKey
+                      )
+                    );
+                  }}
+                >
+                  Surprise me
                 </button>
               </div>
               <ul className="mt-3 space-y-2">
