@@ -29,10 +29,16 @@ describe("adaptive training recommendations", () => {
       select: vi.fn(() => ({
         from: vi.fn(() => {
           const rows = mocks.selectResults.shift() ?? [];
+          const filteredResult = {
+            orderBy: vi.fn(() => ({ limit: vi.fn(async () => rows) })),
+            then: <TResult>(
+              onFulfilled: (value: unknown[]) => TResult | PromiseLike<TResult>
+            ) => Promise.resolve(rows).then(onFulfilled),
+          };
           return {
             orderBy: vi.fn(() => ({ limit: vi.fn(async () => rows) })),
-            where: vi.fn(async () => rows),
-            innerJoin: vi.fn(() => ({ where: vi.fn(async () => rows) })),
+            where: vi.fn(() => filteredResult),
+            innerJoin: vi.fn(() => ({ where: vi.fn(() => filteredResult) })),
           };
         }),
       })),
@@ -54,6 +60,7 @@ describe("adaptive training recommendations", () => {
         { problemId: 3, status: "planned" },
       ],
       [{ problemId: 4 }],
+      [{ difficulty: 1200 }, { difficulty: 1400 }, { difficulty: 1000 }],
     ];
 
     await expect(
@@ -62,6 +69,13 @@ describe("adaptive training recommendations", () => {
         .olimp.training.adaptive({ count: 4 })
     ).resolves.toMatchObject({
       calculationVersion: "adaptive-training-v1",
+      difficultyProgressionCalculationVersion: "difficulty-progression-v1",
+      progression: {
+        status: "estimated",
+        targetDifficulty: 1300,
+        minDifficulty: 1100,
+        maxDifficulty: 1500,
+      },
       recommendations: [
         {
           problem: { id: 2, title: "Paused" },

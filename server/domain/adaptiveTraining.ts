@@ -1,4 +1,7 @@
 export const adaptiveTrainingCalculationVersion = "adaptive-training-v1";
+export const difficultyProgressionCalculationVersion =
+  "difficulty-progression-v1";
+export const minimumSolvedDifficultiesForProgression = 3;
 
 export type AdaptiveTrainingProgressStatus =
   | "not_started"
@@ -28,6 +31,24 @@ export type AdaptiveTrainingRecommendation = {
   reasonCode: AdaptiveTrainingReasonCode;
   reason: string;
 };
+
+export type DifficultyProgression =
+  | {
+      status: "estimated";
+      sampleSize: number;
+      targetDifficulty: number;
+      minDifficulty: number;
+      maxDifficulty: number;
+      reason: string;
+    }
+  | {
+      status: "insufficient_evidence";
+      sampleSize: number;
+      targetDifficulty: null;
+      minDifficulty: null;
+      maxDifficulty: null;
+      reason: string;
+    };
 
 const terminalProgressStatuses = new Set<AdaptiveTrainingProgressStatus>([
   "solved",
@@ -77,7 +98,8 @@ function recommendationFor(candidate: AdaptiveTrainingCandidate): {
 
 export function selectAdaptiveTrainingProblems(
   candidates: AdaptiveTrainingCandidate[],
-  count: number
+  count: number,
+  targetDifficulty: number | null = null
 ): AdaptiveTrainingRecommendation[] {
   if (!Number.isInteger(count) || count < 1 || count > 8) {
     throw new Error("Adaptive training count must be between 1 and 8.");
@@ -100,8 +122,15 @@ export function selectAdaptiveTrainingProblems(
     .sort(
       (left, right) =>
         right.score - left.score ||
-        (left.difficulty ?? Number.MAX_SAFE_INTEGER) -
-          (right.difficulty ?? Number.MAX_SAFE_INTEGER) ||
+        (targetDifficulty === null
+          ? (left.difficulty ?? Number.MAX_SAFE_INTEGER) -
+            (right.difficulty ?? Number.MAX_SAFE_INTEGER)
+          : Math.abs(
+              (left.difficulty ?? Number.MAX_SAFE_INTEGER) - targetDifficulty
+            ) -
+            Math.abs(
+              (right.difficulty ?? Number.MAX_SAFE_INTEGER) - targetDifficulty
+            )) ||
         left.problemId - right.problemId
     )
     .slice(0, count)
@@ -111,4 +140,41 @@ export function selectAdaptiveTrainingProblems(
       reasonCode,
       reason,
     }));
+}
+
+export function calculateDifficultyProgression(
+  solvedDifficulties: Array<number | null | undefined>
+): DifficultyProgression {
+  const verified = solvedDifficulties
+    .filter(
+      (difficulty): difficulty is number =>
+        typeof difficulty === "number" &&
+        Number.isFinite(difficulty) &&
+        difficulty > 0
+    )
+    .slice(0, minimumSolvedDifficultiesForProgression);
+  if (verified.length < minimumSolvedDifficultiesForProgression) {
+    return {
+      status: "insufficient_evidence",
+      sampleSize: verified.length,
+      targetDifficulty: null,
+      minDifficulty: null,
+      maxDifficulty: null,
+      reason: `Need ${minimumSolvedDifficultiesForProgression} recent solved problems with verified difficulty before setting a progression target.`,
+    };
+  }
+  const ordered = [...verified].sort((left, right) => left - right);
+  const median = ordered[Math.floor(ordered.length / 2)]!;
+  const targetDifficulty = Math.max(
+    800,
+    Math.min(3500, Math.round((median + 100) / 100) * 100)
+  );
+  return {
+    status: "estimated",
+    sampleSize: verified.length,
+    targetDifficulty,
+    minDifficulty: Math.max(800, targetDifficulty - 200),
+    maxDifficulty: Math.min(3500, targetDifficulty + 200),
+    reason: `Target is one verified difficulty step above the median of your ${verified.length} most recent solved problems.`,
+  };
 }

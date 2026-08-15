@@ -80,3 +80,4 @@
 - [x] Replace the manual P1-801 browser-auth dependency with an automated UI journey over imported-problem fixtures, without altering production OAuth or authorization.
 - [x] Add a true owner-context P1-801 router integration regression that verifies persisted imported-problem session creation, ordered active/queued items and detail/continuation state together.
 - [x] Implement P1-802 deterministic adaptive training problem selection from real owner-scoped learning evidence, with explainable reasons and no fabricated recommendations.
+- [x] Implement P1-803 deterministic training difficulty progression from verified owner-scoped solved progress and canonical problem difficulty, with an explicit insufficient-evidence state.

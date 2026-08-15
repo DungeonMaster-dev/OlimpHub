@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   adaptiveTrainingCalculationVersion,
+  calculateDifficultyProgression,
+  difficultyProgressionCalculationVersion,
   selectAdaptiveTrainingProblems,
 } from "./adaptiveTraining";
 
@@ -66,5 +68,52 @@ describe("adaptive training selection", () => {
     expect(() => selectAdaptiveTrainingProblems([], 9)).toThrow(
       "Adaptive training count must be between 1 and 8."
     );
+  });
+
+  it("sets a bounded next-step difficulty target from three verified recent solves", () => {
+    expect(difficultyProgressionCalculationVersion).toBe(
+      "difficulty-progression-v1"
+    );
+    expect(calculateDifficultyProgression([1200, 1400, 1000])).toEqual({
+      status: "estimated",
+      sampleSize: 3,
+      targetDifficulty: 1300,
+      minDifficulty: 1100,
+      maxDifficulty: 1500,
+      reason:
+        "Target is one verified difficulty step above the median of your 3 most recent solved problems.",
+    });
+    expect(
+      selectAdaptiveTrainingProblems(
+        [
+          {
+            problemId: 10,
+            difficulty: 1200,
+            progressStatus: null,
+            isInActiveTraining: false,
+          },
+          {
+            problemId: 11,
+            difficulty: 1300,
+            progressStatus: null,
+            isInActiveTraining: false,
+          },
+        ],
+        2,
+        1300
+      ).map(item => item.problemId)
+    ).toEqual([11, 10]);
+  });
+
+  it("returns insufficient evidence instead of inferring a target from too little solved history", () => {
+    expect(calculateDifficultyProgression([1200, null, 1400])).toEqual({
+      status: "insufficient_evidence",
+      sampleSize: 2,
+      targetDifficulty: null,
+      minDifficulty: null,
+      maxDifficulty: null,
+      reason:
+        "Need 3 recent solved problems with verified difficulty before setting a progression target.",
+    });
   });
 });

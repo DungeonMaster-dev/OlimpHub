@@ -52,6 +52,11 @@ export default function Training() {
                     Based only on your unfinished progress and currently active
                     sessions.
                   </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {adaptive.data.progression.status === "estimated"
+                      ? `Target difficulty ${adaptive.data.progression.targetDifficulty} (range ${adaptive.data.progression.minDifficulty}–${adaptive.data.progression.maxDifficulty}).`
+                      : adaptive.data.progression.reason}
+                  </p>
                 </div>
                 <button
                   type="button"

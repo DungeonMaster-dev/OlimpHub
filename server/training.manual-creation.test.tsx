@@ -8,6 +8,14 @@ const mocks = vi.hoisted(() => ({
     problem: { id: number; title: string; difficulty: number | null };
     reason: string;
   }>,
+  adaptiveProgression: {
+    status: "insufficient_evidence",
+    targetDifficulty: null as number | null,
+    minDifficulty: null as number | null,
+    maxDifficulty: null as number | null,
+    reason:
+      "Need 3 recent solved problems with verified difficulty before setting a progression target.",
+  },
   catalogueQuery: vi.fn(),
   create: vi.fn(),
   invalidate: vi.fn(),
@@ -39,7 +47,10 @@ vi.mock("@/lib/trpc", () => ({
       training: {
         adaptive: {
           useQuery: () => ({
-            data: { recommendations: mocks.adaptiveRecommendations },
+            data: {
+              progression: mocks.adaptiveProgression,
+              recommendations: mocks.adaptiveRecommendations,
+            },
           }),
         },
         list: {
@@ -68,6 +79,14 @@ import Training from "../client/src/pages/Training";
 describe("manual training creation UI", () => {
   beforeEach(() => {
     mocks.adaptiveRecommendations = [];
+    mocks.adaptiveProgression = {
+      status: "insufficient_evidence",
+      targetDifficulty: null,
+      minDifficulty: null,
+      maxDifficulty: null,
+      reason:
+        "Need 3 recent solved problems with verified difficulty before setting a progression target.",
+    };
     mocks.catalogueQuery.mockReset();
     mocks.catalogueQuery.mockReturnValue({
       data: {
@@ -151,12 +170,23 @@ describe("manual training creation UI", () => {
           "Prioritized because you explicitly marked this problem for practice.",
       },
     ];
+    mocks.adaptiveProgression = {
+      status: "estimated",
+      targetDifficulty: 1300,
+      minDifficulty: 1100,
+      maxDifficulty: 1500,
+      reason:
+        "Target is one verified difficulty step above the median of your 3 most recent solved problems.",
+    };
     const screen = render(<Training />);
 
     expect(
       screen.getByText(
         "Prioritized because your personal progress still has an unfinished attempt."
       )
+    ).toBeTruthy();
+    expect(
+      screen.getByText("Target difficulty 1300 (range 1100–1500).")
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Use suggestions" }));
 

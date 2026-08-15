@@ -61,6 +61,9 @@ import { summarizeSubmissionVerdicts } from "../domain/submissionActivity";
 import { isTrainingSessionComplete } from "../domain/trainingActivity";
 import {
   adaptiveTrainingCalculationVersion,
+  calculateDifficultyProgression,
+  difficultyProgressionCalculationVersion,
+  minimumSolvedDifficultiesForProgression,
   selectAdaptiveTrainingProblems,
 } from "../domain/adaptiveTraining";
 import {
@@ -1056,40 +1059,61 @@ export const olimpRouter = router({
         if (!candidates.length) {
           return {
             calculationVersion: adaptiveTrainingCalculationVersion,
+            difficultyProgressionCalculationVersion,
+            progression: calculateDifficultyProgression([]),
             recommendations: [],
           };
         }
         const candidateIds = candidates.map(problem => problem.id);
-        const [progressRows, activeTrainingRows] = await Promise.all([
-          db
-            .select()
-            .from(userProblemProgress)
-            .where(
-              and(
-                eq(userProblemProgress.userId, ctx.user.id),
-                inArray(userProblemProgress.problemId, candidateIds)
+        const [progressRows, activeTrainingRows, solvedDifficultyRows] =
+          await Promise.all([
+            db
+              .select()
+              .from(userProblemProgress)
+              .where(
+                and(
+                  eq(userProblemProgress.userId, ctx.user.id),
+                  inArray(userProblemProgress.problemId, candidateIds)
+                )
+              ),
+            db
+              .select({ problemId: trainingItems.problemId })
+              .from(trainingItems)
+              .innerJoin(
+                trainingSessions,
+                eq(trainingItems.sessionId, trainingSessions.id)
               )
-            ),
-          db
-            .select({ problemId: trainingItems.problemId })
-            .from(trainingItems)
-            .innerJoin(
-              trainingSessions,
-              eq(trainingItems.sessionId, trainingSessions.id)
-            )
-            .where(
-              and(
-                eq(trainingSessions.userId, ctx.user.id),
-                eq(trainingSessions.status, "active"),
-                inArray(trainingItems.status, ["active", "queued"])
+              .where(
+                and(
+                  eq(trainingSessions.userId, ctx.user.id),
+                  eq(trainingSessions.status, "active"),
+                  inArray(trainingItems.status, ["active", "queued"])
+                )
+              ),
+            db
+              .select({ difficulty: problems.difficulty })
+              .from(userProblemProgress)
+              .innerJoin(
+                problems,
+                eq(userProblemProgress.problemId, problems.id)
               )
-            ),
-        ]);
+              .where(
+                and(
+                  eq(userProblemProgress.userId, ctx.user.id),
+                  eq(userProblemProgress.status, "solved")
+                )
+              )
+              .orderBy(desc(userProblemProgress.solvedAt))
+              .limit(minimumSolvedDifficultiesForProgression),
+          ]);
         const progressByProblem = new Map(
           progressRows.map(progress => [progress.problemId, progress.status])
         );
         const activeTrainingProblemIds = new Set(
           activeTrainingRows.map(item => item.problemId)
+        );
+        const progression = calculateDifficultyProgression(
+          solvedDifficultyRows.map(item => item.difficulty)
         );
         const selected = selectAdaptiveTrainingProblems(
           candidates.map(problem => ({
@@ -1098,13 +1122,16 @@ export const olimpRouter = router({
             progressStatus: progressByProblem.get(problem.id) ?? null,
             isInActiveTraining: activeTrainingProblemIds.has(problem.id),
           })),
-          input.count
+          input.count,
+          progression.targetDifficulty
         );
         const problemById = new Map(
           candidates.map(problem => [problem.id, problem])
         );
         return {
           calculationVersion: adaptiveTrainingCalculationVersion,
+          difficultyProgressionCalculationVersion,
+          progression,
           recommendations: selected.map(recommendation => ({
             problem: problemById.get(recommendation.problemId)!,
             ...recommendation,

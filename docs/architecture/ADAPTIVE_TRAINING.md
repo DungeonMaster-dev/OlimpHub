@@ -18,6 +18,12 @@ The selector considers a bounded catalogue candidate pool and omits problems alr
 
 `olimp.training.adaptive({ count })` accepts one to eight recommendations and returns the calculation version plus ordered problems and their factual reason codes. The Training page displays the reasons before the user may apply the suggestions to the ordinary editable session form. The user retains control of the title, selected problems and final create action; `training.create` remains the only session-writing procedure.
 
+## Difficulty progression
+
+`difficulty-progression-v1` reads at most the three most recent owner-scoped solved problems with verified canonical difficulty. With all three facts present, it sets a target one 100-point step above their median and exposes a target band of ±200 points, bounded to the supported 800–3500 range. Difficulty proximity is only a tie-breaker after stronger unfinished-progress and explicitly planned-work ranking; it never overrides those factual priorities.
+
+When fewer than three verified solved difficulties exist, the API returns `insufficient_evidence` with no target or range. The Training UI states this boundary instead of guessing an ability level. The selected session remains entirely user-editable in either state.
+
 ## Privacy and future scope
 
 No recommendation reason includes note text, hint content, source-code content or a copied problem statement. Skill-weakness targeting and recent-exposure balancing remain separate backlog work so the selector never overstates thin evidence.
