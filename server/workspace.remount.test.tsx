@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   recordPageActivity: vi.fn(),
+  recordEditorActivity: vi.fn(),
   sequence: 0,
 }));
 
@@ -49,6 +50,9 @@ vi.mock("@/lib/trpc", () => ({
         recordPageActivity: {
           useMutation: () => ({ mutate: mocks.recordPageActivity }),
         },
+        recordEditorActivity: {
+          useMutation: () => ({ mutate: mocks.recordEditorActivity }),
+        },
         notes: {
           useQuery: () => ({ data: [], isLoading: false, error: null }),
         },
@@ -74,6 +78,7 @@ import Workspace from "../client/src/pages/Workspace";
 describe("Workspace page activity lifecycle", () => {
   beforeEach(() => {
     mocks.recordPageActivity.mockReset();
+    mocks.recordEditorActivity.mockReset();
     mocks.sequence = 0;
     vi.stubGlobal("crypto", {
       randomUUID: () =>
@@ -111,5 +116,37 @@ describe("Workspace page activity lifecycle", () => {
         }),
       ],
     ]);
+  });
+
+  it("emits metadata-only focus and blur mutations from the private note editor", async () => {
+    const screen = render(<Workspace />);
+    const editor = screen.getByPlaceholderText(
+      "What have you tried? Which invariant or edge case is still unclear?"
+    );
+    fireEvent.focus(editor);
+    fireEvent.blur(editor);
+
+    await waitFor(() =>
+      expect(mocks.recordEditorActivity).toHaveBeenCalledTimes(2)
+    );
+    expect(mocks.recordEditorActivity.mock.calls).toEqual([
+      [
+        expect.objectContaining({
+          problemId: 9,
+          phase: "focused",
+          clientEventId: "00000000-0000-4000-8000-000000000002",
+        }),
+      ],
+      [
+        expect.objectContaining({
+          problemId: 9,
+          phase: "blurred",
+          clientEventId: "00000000-0000-4000-8000-000000000003",
+        }),
+      ],
+    ]);
+    expect(JSON.stringify(mocks.recordEditorActivity.mock.calls)).not.toContain(
+      "private note"
+    );
   });
 });

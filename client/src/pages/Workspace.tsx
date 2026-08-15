@@ -27,6 +27,8 @@ export default function Workspace() {
   });
   const { mutate: recordPageActivity } =
     trpc.olimp.workspace.recordPageActivity.useMutation();
+  const { mutate: recordEditorActivity } =
+    trpc.olimp.workspace.recordEditorActivity.useMutation();
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const [editedNote, setEditedNote] = useState<string | null>(null);
   const [hint, setHint] = useState<{ level: number; content: string } | null>(
@@ -133,6 +135,20 @@ export default function Workspace() {
               className="min-h-52 w-full resize-y rounded-xl border border-white/[.08] bg-black/15 p-4 text-sm leading-6 text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-indigo-300/50"
               value={note}
               onChange={event => setEditedNote(event.target.value)}
+              onFocus={() =>
+                recordEditorActivity({
+                  problemId,
+                  phase: "focused",
+                  clientEventId: crypto.randomUUID(),
+                })
+              }
+              onBlur={() =>
+                recordEditorActivity({
+                  problemId,
+                  phase: "blurred",
+                  clientEventId: crypto.randomUUID(),
+                })
+              }
               placeholder="What have you tried? Which invariant or edge case is still unclear?"
             />
             <div className="mt-3 flex justify-end">

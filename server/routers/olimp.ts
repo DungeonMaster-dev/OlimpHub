@@ -646,6 +646,42 @@ export const olimpRouter = router({
         });
         return { recorded: true, reason: null };
       }),
+    recordEditorActivity: protectedProcedure
+      .input(
+        z.object({
+          problemId: z.number().int().positive(),
+          phase: z.enum(["focused", "blurred"]),
+          clientEventId: z.string().uuid(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await requireDb();
+        const settings = await ensureSettings(ctx.user.id);
+        if (settings.activityTracking === "minimal") {
+          return { recorded: false, reason: "minimal_tracking" as const };
+        }
+        const problem = (
+          await db
+            .select({ id: problems.id })
+            .from(problems)
+            .where(eq(problems.id, input.problemId))
+            .limit(1)
+        )[0];
+        if (!problem) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Problem not found.",
+          });
+        }
+        await writeActivity({
+          userId: ctx.user.id,
+          problemId: problem.id,
+          eventType: `note_editor_${input.phase}`,
+          metadata: { surface: "workspace_note" },
+          clientEventId: input.clientEventId,
+        });
+        return { recorded: true, reason: null };
+      }),
     start: protectedProcedure
       .input(z.object({ problemId: z.number().int().positive() }))
       .mutation(async ({ ctx, input }) => {
